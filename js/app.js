@@ -13,13 +13,10 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const uniq=a=>a.filter((x,i)=>a.indexOf(x)===i);
-const flat=a=>[].concat.apply([],a);
 /** Bis zu 3 falsche Antworten aus Kandidaten (ohne die richtige, ohne Doppelte). */
 const pick3=(c,cands)=>shuffle(uniq(cands).filter(x=>x!==c)).slice(0,3);
 /** Ersetzt ___ im Satz durch eine animierte Lücke. */
 const gapIn=s=>s.replace('___','<span class="gap">?</span>');
-const norm=s=>String(s).trim().replace(/\s+/g,' ');
-const plain=html=>String(html).replace(/<span class="[^"]*gap[^"]*">[^<]*<\/span>/g,' ___ ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
 
 /* ================= Registry ================= */
 const LernApp={
@@ -46,25 +43,16 @@ window.LernApp=LernApp;
 
 /* ================= Save state ================= */
 const KEY='lern-eule-v1';
-const FRESH=()=>({name:'',xp:0,stars:{},badges:[],answered:0,correct:0,bestCombo:0,sound:true,gems:0,mistakes:{},days:[],blitz:{}});
+const FRESH=()=>({name:'',xp:0,stars:{},badges:[],answered:0,bestCombo:0,sound:true});
 let S=FRESH();
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
-// Ältere Spielstände hatten noch keinen Zähler für richtige Antworten: aus den XP schätzen.
-if(typeof S.correct!=='number')S.correct=Math.min(S.answered,Math.round(S.xp/14));
-['mistakes','blitz'].forEach(k=>{if(!S[k]||typeof S[k]!=='object')S[k]={}});
-if(!Array.isArray(S.days))S.days=[];
-if(typeof S.gems!=='number')S.gems=0;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const starKey=(m,w)=>m.id+'/'+w.id;
 const getStars=(m,w)=>S.stars[starKey(m,w)]||0;
-const mist=m=>S.mistakes[m.id]||(S.mistakes[m.id]={});
 
 /* ================= Dates ================= */
 function parseDate(d){if(!d)return null;const p=d.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
-const dkey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const today0=()=>{const t=new Date();t.setHours(0,0,0,0);return t};
-const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
-function daysUntil(d){const x=parseDate(d);return x?Math.round((x-today0())/864e5):null}
+function daysUntil(d){const t=new Date();t.setHours(0,0,0,0);const x=parseDate(d);return x?Math.round((x-t)/864e5):null}
 function fmtDate(d){const x=parseDate(d);return x?x.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'numeric'}):''}
 function dateChip(m){
   const d=daysUntil(m.date);if(d===null)return '';
@@ -82,30 +70,18 @@ function countdownText(m){
   return 'Wiederholen lohnt sich immer. Sammle alle Sterne!';
 }
 const isDone=m=>{const d=daysUntil(m.date);return d!==null&&d<0};
-const played=d=>S.days.indexOf(dkey(d))>=0;
 
 /* ================= Levels & badges ================= */
-const TITLES=['Wort-Entdecker','Wissens-Sammler','Lern-Lehrling','Wissens-Zauberer','Lern-Profi','Schlau-Held','Lern-Meister','Wissens-Legende','Eulen-Genie',
- 'Sprach-Ass','Wort-Ninja','Satz-Pirat','Regel-Ritter','Grammatik-Zauberer','Rechtschreib-Pilot','Eulen-Kapitän','Wissens-Drachenreiter','Sprach-Superstar','Wort-Weltmeister','Grammatik-Großmeister',
- 'Eulen-König','Wort-Astronaut','Satz-Superheld','Regel-Rakete','Sprach-Magier','Grammatik-Titan','Wissens-Phönix','Lern-Legende','Galaxie-Genie','Universums-Eule'];
-/* Level-Kurve: bis Level 20 je 100 XP. Ab Level 20 wird jede Stufe 30 XP teurer (130, 160, 190 …). */
-const STEP_UNTIL=20,BASE=100,GROW=30;
-const costOf=l=>l<STEP_UNTIL?BASE:BASE+(l-STEP_UNTIL+1)*GROW; // XP von Level l nach l+1
-function levelInfo(xp){let l=1,rest=xp;while(rest>=costOf(l)){rest-=costOf(l);l++}return {lvl:l,into:rest,need:costOf(l)}}
-const level=()=>levelInfo(S.xp).lvl;
+const TITLES=['Wort-Entdecker','Wissens-Sammler','Lern-Lehrling','Wissens-Zauberer','Lern-Profi','Schlau-Held','Lern-Meister','Wissens-Legende','Eulen-Genie'];
+const level=()=>Math.floor(S.xp/100)+1;
 const titleOf=l=>TITLES[Math.min(l-1,TITLES.length-1)];
 const BADGES=[
  {id:'first',icon:'🎉',name:'Erster Sieg',desc:'Eine Welt geschafft'},
  {id:'combo5',icon:'🔥',name:'Heiße Serie',desc:'5 richtig am Stück'},
  {id:'combo10',icon:'☄️',name:'Unaufhaltsam',desc:'10 richtig am Stück'},
- {id:'perfect',icon:'✨',name:'Perfekt',desc:'3 Sterne in einer Welt'},
+ {id:'perfect',icon:'💎',name:'Perfekt',desc:'3 Sterne in einer Welt'},
  {id:'all',icon:'🗺️',name:'Weltenbummler',desc:'Alle Welten eines Lernpakets'},
  {id:'boss',icon:'🐉',name:'Boss-Bezwinger',desc:'Einen Endgegner besiegt'},
- {id:'gold',icon:'👑',name:'Gold-Bezwinger',desc:'Den goldenen Endgegner besiegt'},
- {id:'exam',icon:'✍️',name:'Prüfungs-Profi',desc:'Probetest mit 3 Sternen'},
- {id:'gems10',icon:'💎',name:'Schatzsucher',desc:'10 Edelsteine gesammelt'},
- {id:'blitz15',icon:'⚡',name:'Blitzmerker',desc:'15 richtig in einer Blitzrunde'},
- {id:'daily',icon:'📅',name:'Dranbleiber',desc:'3 Tage vor dem Test jeden Tag geübt'},
  {id:'stars',icon:'🌟',name:'Sternen-Sammler',desc:'Alle Sterne eines Lernpakets'},
  {id:'q50',icon:'📚',name:'Fleißig',desc:'50 Fragen beantwortet'},
  {id:'q150',icon:'🧠',name:'Superhirn',desc:'150 Fragen beantwortet'},
@@ -118,42 +94,15 @@ function grant(id){
   const b=BADGES.find(x=>x.id===id);if(Q)Q.newBadges.push(b);
   setTimeout(()=>{toast(b.icon,`Abzeichen: ${b.name}!`);sfx('level')},400);
 }
-
-/* ================= Spezial-Welten ================= */
-const hasWrite=m=>m.worlds.some(w=>w.write);
-function bossW(m){
+const allWorlds=m=>m.boss?m.worlds.concat([bossWorld(m)]):m.worlds;
+const maxStars=m=>allWorlds(m).length*3;
+const packStars=m=>allWorlds(m).reduce((a,w)=>a+getStars(m,w),0);
+const totalStars=()=>LernApp.modules.reduce((a,m)=>a+packStars(m),0);
+function bossWorld(m){
   const b=m.boss;
-  return {id:'boss',kind:'boss',name:b.name||'Endgegner',icon:b.icon||'🐉',color:b.color||'#dc2626',color2:b.color2||'#f97316',
+  return {id:'boss',isBoss:true,name:b.name||'Endgegner',icon:b.icon||'🐉',color:b.color||'#dc2626',color2:b.color2||'#f97316',
     topic:b.topic||`Alles gemischt! ${b.count||15} Fragen, ${b.lives||3} Leben.`,count:b.count||15,lives:b.lives||3};
 }
-function goldW(m){
-  return {id:'gold',kind:'boss',gold:true,name:'Goldener '+(m.boss.name||'Endgegner'),icon:'🐲',color:'#b45309',color2:'#facc15',
-    topic:'Nur 1 Leben! 20 Fragen. Für echte Profis.',count:20,lives:1};
-}
-const examW=m=>({id:'exam',kind:'exam',name:'Probetest',icon:'✍️',color:'#0f766e',color2:'#14b8a6',topic:'Antworten selbst schreiben – wie im echten Test!',count:m.examCount||12});
-const chestW=()=>({id:'chest',kind:'chest',name:'Fehler-Schatzkiste',icon:'💎',color:'#be185d',color2:'#ec4899',topic:'Deine kniffligen Fragen. 2× richtig = 1 Edelstein!'});
-const blitzW=()=>({id:'blitz',kind:'blitz',name:'Blitzrunde',icon:'⚡',color:'#1d4ed8',color2:'#3b82f6',topic:'60 Sekunden – so viele richtig wie möglich!',seconds:60});
-/** Welten mit Sternen */
-const starWorlds=m=>m.worlds.concat(m.boss?[bossW(m),goldW(m)]:[]).concat(hasWrite(m)?[examW(m)]:[]);
-const maxStars=m=>starWorlds(m).length*3;
-const packStars=m=>starWorlds(m).reduce((a,w)=>a+getStars(m,w),0);
-const totalStars=()=>LernApp.modules.reduce((a,m)=>a+packStars(m),0);
-function findWorld(m,id){
-  return m.worlds.find(x=>x.id===id)||[m.boss?bossW(m):null,m.boss?goldW(m):null,hasWrite(m)?examW(m):null,chestW(),blitzW()].find(x=>x&&x.id===id);
-}
-
-/* ================= Fragen-Pools (mit Schlüssel für die Schatzkiste) ================= */
-const tag=(q,w,key)=>{q.key=key;q.wid=w.id;return q};
-const pool=w=>w.cats().map((c,ci)=>c.map((f,ii)=>()=>tag(f(),w,`${w.id}:c${ci}:${ii}`)));
-const writePool=w=>w.write?w.write().map((f,ii)=>()=>tag(f(),w,`${w.id}:w:${ii}`)):[];
-function byKey(m,key){
-  const p=key.split(':'),w=m.worlds.find(x=>x.id===p[0]);if(!w)return null;
-  let f=null;
-  if(p[1]==='w'){const l=w.write?w.write():[];f=l[+p[2]]}
-  else{const c=w.cats()[+p[1].slice(1)];f=c?c[+p[2]]:null}
-  return f?()=>tag(f(),w,key):null;
-}
-const chestCount=m=>Object.keys(mist(m)).length;
 
 /* ================= Effects ================= */
 let AC=null;
@@ -162,11 +111,11 @@ function sfx(t){
   try{
     AC=AC||new (window.AudioContext||window.webkitAudioContext)();
     if(AC.state==='suspended')AC.resume();
-    const seq={good:[[660,0],[990,.09]],bad:[[260,0],[200,.14]],level:[[523,0],[659,.1],[784,.2],[1046,.3]],win:[[523,0],[659,.13],[784,.26],[1046,.39],[1318,.55]],combo:[[784,0],[988,.07],[1175,.14]],gem:[[1046,0],[1318,.08],[1568,.16],[2093,.24]],tick:[[880,0]]}[t];
+    const seq={good:[[660,0],[990,.09]],bad:[[260,0],[200,.14]],level:[[523,0],[659,.1],[784,.2],[1046,.3]],win:[[523,0],[659,.13],[784,.26],[1046,.39],[1318,.55]],combo:[[784,0],[988,.07],[1175,.14]]}[t];
     seq.forEach(p=>{
       const f=p[0],d=p[1],o=AC.createOscillator(),g=AC.createGain(),t0=AC.currentTime+d;
       o.type=t==='bad'?'square':'triangle';o.frequency.value=f;
-      g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(t==='bad'?.06:t==='tick'?.08:.2,t0+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+.28);
+      g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(t==='bad'?.06:.2,t0+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+.28);
       o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+.3);
     });
   }catch(e){}
@@ -211,7 +160,7 @@ function modal(html,closeOnBg){
 const PREFIX='lernpaket-';
 let CUR=null; // aktuelles Lernpaket
 function route(){
-  stopTimer();Q=null;
+  Q=null;
   const h=location.hash.slice(1);
   const m=h.indexOf(PREFIX)===0?LernApp.modules.find(x=>x.id===h.slice(PREFIX.length)):null;
   if(m){CUR=m;renderPack(m)}else{CUR=null;renderHome()}
@@ -221,11 +170,11 @@ addEventListener('hashchange',route);
 
 /* ================= Home ================= */
 function statsHTML(){
-  const L=levelInfo(S.xp),lvl=L.lvl,pct=Math.round(L.into/L.need*100);
+  const lvl=level(),into=S.xp%100;
   return `<div class="stats">
-    <div class="lvl"><div class="lvlbadge" data-l="${lvl}" style="--p:${pct}%"></div>
-      <div style="flex:1"><div class="lvltitle">Level ${lvl} · ${titleOf(lvl)}</div><div class="xpbar"><div style="width:${pct}%"></div></div><div class="xptext">${L.into} / ${L.need} XP bis Level ${lvl+1}${lvl>=STEP_UNTIL?' · ab jetzt wird jedes Level schwerer! 💪':''}</div></div></div>
-    <div class="chips"><span title="Sterne">⭐ ${totalStars()}</span><span title="Beste Serie">🔥 ${S.bestCombo}</span><span title="Richtige Antworten">✅ ${S.correct}</span>${S.gems?`<span title="Edelsteine">💎 ${S.gems}</span>`:''}</div>
+    <div class="lvl"><div class="lvlbadge" data-l="${lvl}" style="--p:${into}%"></div>
+      <div style="flex:1"><div class="lvltitle">Level ${lvl} · ${titleOf(lvl)}</div><div class="xpbar"><div style="width:${into}%"></div></div><div class="xptext">${into} / 100 XP bis Level ${lvl+1}</div></div></div>
+    <div class="chips"><span title="Sterne">⭐ ${totalStars()}</span><span title="Beste Serie">🔥 ${S.bestCombo}</span><span title="Beantwortete Fragen">✅ ${S.answered}</span></div>
   </div>`;
 }
 function packCard(m,i){
@@ -262,68 +211,23 @@ function renderHome(){
   scrollTo(0,0);
 }
 
-/* ================= Tages-Serie ================= */
-const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
-function stripRange(m){
-  const end=parseDate(m.date);if(!end||end<today0())return null;
-  let start=today0();const min=addDays(end,-6);
-  S.days.forEach(k=>{const d=parseDate(k);if(d<start&&d>=min)start=d});
-  return {start,end};
-}
-function dayStrip(m){
-  const r=stripRange(m);if(!r)return '';
-  const t=today0();let html='',n=0,d=r.start;
-  while(d<=r.end){
-    const isTest=+d===+r.end,isToday=+d===+t,did=played(d);if(did)n++;
-    const cls=did?'did':isToday?'today':d<t?'miss':'future';
-    const icon=did?'🔥':isTest?'📝':isToday?'⭐':d<t?'💤':'·';
-    html+=`<div class="day ${cls} ${isTest?'test':''}"><small>${isToday?'Heute':WD[d.getDay()]}</small><span>${icon}</span></div>`;
-    d=addDays(d,1);
-  }
-  const msg=played(t)?`<b>${n} ${n===1?'Tag':'Tage'}</b> geübt – super, morgen wieder!`:'Spiel heute eine Runde für deine Flamme 🔥';
-  return `<div class="section daystrip"><h3>📅 Dein Weg bis zum Test</h3><div class="days">${html}</div><div class="dmsg">${msg}</div></div>`;
-}
-function markDay(m){
-  const k=dkey(today0());if(S.days.indexOf(k)<0)S.days.push(k);
-  const end=parseDate(m.date);
-  if(end&&daysUntil(m.date)>=0){
-    const need=[1,2,3].map(n=>addDays(end,-n));
-    if(need.every(played))grant('daily');
-  }
-}
-
 /* ================= Lernpaket ================= */
-function worldCard(m,w,i,locked,lockMsg){
-  const st=getStars(m,w),hasStars=w.kind!=='chest'&&w.kind!=='blitz';
-  let extra='';
-  if(w.kind==='chest'){const c=chestCount(m);extra=`<div class="wx">${c?`${c} knifflige ${c===1?'Frage':'Fragen'} · 💎 ${S.gems}`:'Noch leer – super! 💎 '+S.gems}</div>`}
-  if(w.kind==='blitz'){const b=S.blitz[m.id]||0;extra=`<div class="wx">🏆 Rekord: ${b}</div>`}
-  const empty=w.kind==='chest'&&!chestCount(m);
-  const click=locked?`LernApp._locked('${esc(lockMsg||'')}')`:empty?`LernApp._locked('Die Schatzkiste füllt sich mit Fragen, die du falsch hattest.')`:`LernApp.start('${w.id}')`;
-  return `<button class="world ${w.kind||''} ${w.gold?'goldw':''} ${locked?'locked':''}" style="--wc:${w.color};--wc2:${w.color2||w.color};animation-delay:${i*.06}s" onclick="${click}">
+function worldCard(m,w,i,locked){
+  const st=getStars(m,w);
+  return `<button class="world ${w.isBoss?'boss':''} ${locked?'locked':''}" style="--wc:${w.color};--wc2:${w.color2||w.color};animation-delay:${i*.08}s" onclick="${locked?`LernApp._locked()`:`LernApp.start('${w.id}')`}">
     <div class="wi">${locked?'🔒':w.icon}</div><div class="wn">${esc(w.name)}</div><div class="wt">${w.topic||''}</div>
-    ${hasStars?`<div class="ws">${[1,2,3].map(n=>`<span class="${n<=st?'':'off'}">⭐</span>`).join('')}</div>`:extra}
-    <div class="play">${locked?'Gesperrt':empty?'Leer':st?'Nochmal ▶':'Los ▶'}</div></button>`;
+    <div class="ws">${[1,2,3].map(n=>`<span class="${n<=st?'':'off'}">⭐</span>`).join('')}</div>
+    <div class="play">${locked?'Gesperrt':st?'Nochmal ▶':'Los ▶'}</div></button>`;
 }
 function renderPack(m){
-  const allDone=m.worlds.every(w=>getStars(m,w)>0);
-  const bossDone=m.boss&&getStars(m,bossW(m))>0;
+  const bossLocked=!m.worlds.every(w=>getStars(m,w)>0);
   const hasRules=m.worlds.some(w=>w.rules);
-  const special=[];
-  if(hasWrite(m))special.push(worldCard(m,examW(m),0,false));
-  special.push(worldCard(m,chestW(),1,false));
-  special.push(worldCard(m,blitzW(),2,false));
-  if(m.boss)special.push(worldCard(m,goldW(m),3,!bossDone,'Besiege zuerst '+bossW(m).name+'!'));
   app.innerHTML=`
   <div class="topbar"><button class="iconbtn" onclick="LernApp.go()" aria-label="Zurück">‹</button>
     <h1>${m.icon||''} ${esc(m.title)}<small>${esc(m.subject||'')}${m.date?' · '+fmtDate(m.date):''}</small></h1></div>
   <div class="hero"><div class="mascot">🦉</div><div class="bubble">${countdownText(m)}</div></div>
   ${statsHTML()}
-  ${dayStrip(m)}
-  <div class="stitle">🗺️ Welten</div>
-  <div class="worlds">${m.worlds.map((w,i)=>worldCard(m,w,i,false)).join('')}${m.boss?worldCard(m,bossW(m),m.worlds.length,!allDone,'Schaffe zuerst alle Welten!'):''}</div>
-  <div class="stitle">🎯 Spezial-Missionen</div>
-  <div class="worlds">${special.join('')}</div>
+  <div class="worlds">${m.worlds.map((w,i)=>worldCard(m,w,i,false)).join('')}${m.boss?worldCard(m,bossWorld(m),m.worlds.length,bossLocked):''}</div>
   ${badgesHTML()}
   <div class="footer">${hasRules?`<button class="btn ghost" onclick="LernApp._cheat()">📜 Spickzettel</button>`:''}<button class="btn ghost" onclick="LernApp.go()">🏠 Alle Lernpakete</button></div>`;
   scrollTo(0,0);
@@ -334,7 +238,7 @@ function cheat(){
   <button class="btn primary" style="width:100%" onclick="this.closest('.modal').remove()">Alles klar!</button>`,true);
 }
 function resetAsk(){
-  modal(`<div style="text-align:center"><h2>Alles zurücksetzen?</h2><p style="margin-bottom:16px;font-size:18px">Sterne, XP, Abzeichen und Edelsteine werden gelöscht.</p>
+  modal(`<div style="text-align:center"><h2>Alles zurücksetzen?</h2><p style="margin-bottom:16px;font-size:18px">Sterne, XP und Abzeichen werden gelöscht.</p>
   <div class="rbtns"><button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button><button class="btn primary" onclick="LernApp._reset(this)">Ja, neu starten</button></div></div>`);
 }
 
@@ -343,218 +247,101 @@ let Q=null;
 const PRAISE=['Super!','Klasse!','Richtig! 🎯','Stark!','Genau!','Wow, toll!','Spitze!','Bravo!','Treffer!'];
 const OOPS=['Fast!','Nicht ganz …','Knapp daneben!','Upps!'];
 function mix(cats,n){
-  const sh=cats.filter(c=>c.length).map(c=>shuffle(c));const out=[];let i=0;
+  const sh=cats.map(c=>shuffle(c));const out=[];let i=0;
   while(out.length<n&&sh.some(c=>c.length)){const c=sh[i%sh.length];if(c.length)out.push(c.pop()());i++}
   return shuffle(out);
 }
-const allChoice=m=>m.worlds.map(x=>flat(pool(x)));
 function start(wid){
-  const m=CUR;const w=findWorld(m,wid);if(!w)return;
-  stopTimer();
-  const kind=w.kind||'world';let qs;
-  if(kind==='boss')qs=mix(allChoice(m),w.count);
-  else if(kind==='exam')qs=mix(m.worlds.map(writePool),w.count);
-  else if(kind==='blitz')qs=mix(allChoice(m),60);
-  else if(kind==='chest'){
-    const M=mist(m),fs=[];
-    Object.keys(M).forEach(k=>{const f=byKey(m,k);if(f)fs.push(f);else delete M[k]});
-    qs=shuffle(fs).slice(0,10).map(f=>f());
-    if(!qs.length){save();return go(m.id)}
-  }
-  else qs=mix(pool(w),w.count||m.questionsPerWorld||10);
-  Q={m,w,kind,qs,i:0,errors:0,streak:0,maxStreak:0,xpGain:0,retry:[],inRetry:false,hearts:w.lives||0,lives:w.lives||0,
-     total:qs.length,newBadges:[],wrongs:[],score:0,gemsWon:0,ok:0};
-  if(kind==='blitz'){Q.end=Date.now()+w.seconds*1000;Q.timer=setInterval(blitzTick,100)}
+  const m=CUR;const w=allWorlds(m).find(x=>x.id===wid);if(!w)return;
+  const qs=w.isBoss?mix(m.worlds.map(x=>[].concat.apply([],x.cats())),w.count):mix(w.cats(),w.count||m.questionsPerWorld||10);
+  Q={m,w,isBoss:!!w.isBoss,qs,i:0,errors:0,streak:0,maxStreak:0,xpGain:0,retry:[],inRetry:false,hearts:w.lives||0,lives:w.lives||0,total:qs.length,newBadges:[]};
   renderQ();
-}
-function stopTimer(){if(Q&&Q.timer){clearInterval(Q.timer);Q.timer=null}}
-function blitzTick(){
-  if(!Q||Q.kind!=='blitz')return;
-  const left=Math.max(0,Q.end-Date.now()),f=$('.tfill'),t=$('.tleft');
-  if(f)f.style.width=(left/(Q.w.seconds*1000)*100)+'%';
-  if(t){const s=Math.ceil(left/1000);if(t.textContent!==s+'s'){t.textContent=s+'s';if(s<=5&&s>0)sfx('tick')}t.classList.toggle('urgent',s<=10)}
-  if(!left&&!Q.locked)finish(false);
 }
 function heartsHTML(){return '❤️'.repeat(Math.max(Q.hearts,0))+'🖤'.repeat(Q.lives-Math.max(Q.hearts,0))}
 function renderQ(){
   if(Q.i>=Q.qs.length){
-    if(Q.kind==='world'&&Q.retry.length){Q.qs=Q.retry;Q.retry=[];Q.i=0;Q.inRetry=true;toast('🔁','Fehler-Runde: die kniffligen nochmal!')}
-    else if(Q.kind==='blitz'){Q.qs=Q.qs.concat(mix(allChoice(Q.m),40))}
+    if(!Q.isBoss&&Q.retry.length){Q.qs=Q.retry;Q.retry=[];Q.i=0;Q.inRetry=true;toast('🔁','Fehler-Runde: die kniffligen nochmal!')}
     else return finish(false);
   }
   const q=Q.qs[Q.i],w=Q.w;Q.locked=false;
-  Q.opts=q.input?[]:q.fixed?q.options:shuffle(q.options);
-  const blitz=Q.kind==='blitz';
+  Q.opts=q.fixed?q.options:shuffle(q.options);
   const pct=Math.round(Q.i/Q.qs.length*100);
-  const body=q.input
-    ?`<form class="wform" onsubmit="return LernApp._submit(event)"><input id="win" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" placeholder="Hier schreiben …"><button class="btn primary" type="submit">Prüfen</button></form><div class="whint">Achte auf Groß- und Kleinschreibung!</div>`
-    :`<div class="opts ${q.big?'big':''} n${Q.opts.length}">${Q.opts.map((o,i)=>`<button class="opt" onclick="LernApp._answer(${i})"><span class="key">${i+1}</span>${esc(o)}</button>`).join('')}</div>`;
-  app.innerHTML=`<div class="${w.gold?'goldq':''}" style="--wc:${w.color};--wc2:${w.color2||w.color}">
+  app.innerHTML=`<div style="--wc:${w.color};--wc2:${w.color2||w.color}">
    <div class="qtop"><button class="iconbtn" onclick="LernApp._quit()" aria-label="Beenden">✕</button>
-    ${blitz?`<div class="pbar"><div class="pfill tfill" style="width:${Math.max(0,Q.end-Date.now())/(w.seconds*1000)*100}%"></div></div><div class="streak tleft">${Math.ceil(Math.max(0,Q.end-Date.now())/1000)}s</div><div class="streak">⚡ ${Q.score}</div>`
-      :`<div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>${Q.kind==='boss'?`<div class="hearts">${heartsHTML()}</div>`:''}<div class="streak ${Q.streak>=3?'hot':''}">🔥 ${Q.streak}</div>`}</div>
-   <div class="qmeta"><span>${w.icon} ${Q.inRetry?'Fehler-Runde':esc(w.name)}</span><span>${blitz?'Rekord: '+(S.blitz[Q.m.id]||0):`Frage ${Q.i+1} / ${Q.qs.length}`}</span></div>
-   <div class="qcard ${blitz?'':'pop'}" id="qcard"><div class="qtask">${q.task||''}</div><div class="qprompt">${q.prompt}</div>${body}</div>
+    <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
+    ${Q.isBoss?`<div class="hearts">${heartsHTML()}</div>`:''}
+    <div class="streak ${Q.streak>=3?'hot':''}">🔥 ${Q.streak}</div></div>
+   <div class="qmeta"><span>${w.icon} ${Q.inRetry?'Fehler-Runde':esc(w.name)}</span><span>Frage ${Q.i+1} / ${Q.qs.length}</span></div>
+   <div class="qcard pop" id="qcard"><div class="qtask">${q.task||''}</div><div class="qprompt">${q.prompt}</div>
+    <div class="opts ${q.big?'big':''} n${Q.opts.length}">${Q.opts.map((o,i)=>`<button class="opt" onclick="LernApp._answer(${i})"><span class="key">${i+1}</span>${esc(o)}</button>`).join('')}</div></div>
    <div id="fb"></div></div>`;
-  if(!blitz)scrollTo({top:0,behavior:'smooth'});
-  if(q.input){const inp=$('#win');if(inp)inp.focus()}
+  scrollTo({top:0,behavior:'smooth'});
 }
 function answer(i){
-  if(!Q||Q.locked||Q.qs[Q.i].input)return;
+  if(!Q||Q.locked)return;Q.locked=true;
   const q=Q.qs[Q.i],ok=Q.opts[i]===q.answer;
-  const btns=Array.prototype.slice.call(document.querySelectorAll('.opt'));
+  const btns=Array.prototype.slice.call(document.querySelectorAll('.opt')),btn=btns[i];
   btns.forEach((b,j)=>{b.disabled=true;if(Q.opts[j]===q.answer)b.classList.add('right')});
-  if(!ok)btns[i].classList.add('wrong');
-  judge(ok,btns[i],Q.opts[i]);
-}
-function submit(e){
-  e.preventDefault();
-  if(!Q||Q.locked)return false;
-  const q=Q.qs[Q.i],inp=$('#win');const given=norm(inp.value);
-  if(!given){inp.focus();return false}
-  const acc=(q.accept||[q.answer]).map(norm);
-  const ok=acc.indexOf(given)>=0;
-  Q.caseHint=!ok&&acc.some(a=>a.toLowerCase()===given.toLowerCase());
-  inp.disabled=true;inp.classList.add(ok?'right':'wrong');inp.blur();
-  const b=document.querySelector('.wform button');if(b)b.disabled=true;
-  judge(ok,inp,given);
-  return false;
-}
-function judge(ok,el,given){
-  Q.locked=true;
-  const q=Q.qs[Q.i],m=Q.m,M=mist(m);
   document.querySelectorAll('.gap').forEach(g=>{g.textContent=q.fill||q.answer;g.classList.add(ok?'gap-ok':'gap-bad')});
   S.answered++;
-  let gemMsg='';
   if(ok){
-    S.correct++;Q.ok++;
     Q.streak++;Q.maxStreak=Math.max(Q.maxStreak,Q.streak);
     const gain=10+Math.min(Q.streak-1,5)*2;
     const before=level();S.xp+=gain;Q.xpGain+=gain;
-    floatXP(el,'+'+gain+' XP');sfx('good');
-    const r=el.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,Q.kind==='blitz'?10:22,.8);
-    if(Q.kind!=='blitz'&&[3,5,10,15,20].indexOf(Q.streak)>=0){const sk=Q.streak;setTimeout(()=>{comboPop(`🔥 ${sk}er-Serie!`);sfx('combo')},250)}
+    floatXP(btn,'+'+gain+' XP');sfx('good');
+    const r=btn.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,22,.8);
+    if([3,5,10,15,20].indexOf(Q.streak)>=0){const sk=Q.streak;setTimeout(()=>{comboPop(`🔥 ${sk}er-Serie!`);sfx('combo')},250)}
     if(level()>before){const l=level();setTimeout(()=>{toast('⬆️',`Level ${l}: ${titleOf(l)}!`);sfx('level');bigConfetti()},600)}
     if(Q.streak>=5)grant('combo5');if(Q.streak>=10)grant('combo10');
-    if(Q.kind==='chest'&&q.key&&q.key in M){
-      M[q.key]=(M[q.key]||0)+1;
-      if(M[q.key]>=2){delete M[q.key];S.gems++;Q.gemsWon++;gemMsg='💎 Edelstein gewonnen! Diese Frage kannst du jetzt.';
-        setTimeout(()=>{comboPop('💎 +1 Edelstein!');sfx('gem');bigConfetti()},300);if(S.gems>=10)grant('gems10')}
-      else{gemMsg='Noch 1× richtig, dann gibt es einen 💎! Die Frage kommt gleich nochmal.';Q.qs.push(q)}
-    }
-    if(Q.kind==='blitz')Q.score++;
   }else{
-    if(Q.kind!=='blitz'){const c=$('#qcard');c.classList.remove('pop');void c.offsetWidth;c.classList.add('shake')}
-    sfx('bad');Q.streak=0;Q.bad=(Q.bad||0)+1;
-    if(q.key)M[q.key]=0; // ab in die Schatzkiste (bzw. dort von vorn)
-    if(Q.kind==='boss')Q.hearts--;
-    else if(Q.kind==='world'){if(!Q.inRetry)Q.errors++;Q.retry.push(q)}
-    else if(Q.kind==='exam'){Q.errors++;Q.wrongs.push({p:plain(q.prompt),given,answer:q.answer})}
+    btn.classList.add('wrong');const c=$('#qcard');c.classList.remove('pop');void c.offsetWidth;c.classList.add('shake');
+    sfx('bad');Q.streak=0;
+    if(Q.isBoss)Q.hearts--;else{if(!Q.inRetry)Q.errors++;Q.retry.push(q)}
   }
   S.bestCombo=Math.max(S.bestCombo,Q.streak);
   if(S.answered>=50)grant('q50');if(S.answered>=150)grant('q150');if(S.answered>=500)grant('q500');
   save();
-  if(Q.kind==='blitz'){
-    const sc=document.querySelectorAll('.qtop .streak')[1];if(sc)sc.textContent='⚡ '+Q.score;
-    if(!ok)$('#fb').innerHTML=`<div class="fb no blitzfb"><b>Richtig wäre:</b> ${esc(q.answer)}</div>`;
-    setTimeout(()=>{if(!Q||Q.kind!=='blitz')return;if(Date.now()>=Q.end)return finish(false);Q.i++;renderQ()},ok?450:1400);
-    return;
-  }
   const st=document.querySelector('.streak');if(st){st.textContent='🔥 '+Q.streak;st.classList.toggle('hot',Q.streak>=3)}
   const h=document.querySelector('.hearts');if(h)h.textContent=heartsHTML();
-  const dead=Q.kind==='boss'&&Q.hearts<=0;
-  let sub='';
-  if(!ok){
-    sub=q.input?`Richtig ist: <b>${esc(q.answer)}</b>${Q.caseHint?'<br>👀 Fast! Achte auf <b>Groß- und Kleinschreibung</b>.':''}`:'Die richtige Antwort ist grün.';
-    if(Q.kind==='world')sub+=' Die Frage kommt später nochmal!';
-    if(Q.kind==='exam'||Q.kind==='boss')sub+=' Sie wandert in deine 💎 Schatzkiste.';
-  }
+  const dead=Q.isBoss&&Q.hearts<=0;
   $('#fb').innerHTML=`<div class="fb ${ok?'ok':'no'}"><div class="fbhead"><span class="owl">🦉</span><div>
-    <div class="fbtitle">${ok?rnd(PRAISE):rnd(OOPS)}</div>${ok&&Q.streak>=3?`<span class="combo">🔥 ${Q.streak} richtig am Stück</span>`:''}${sub?`<div class="fbsub">${sub}</div>`:''}</div></div>
-    ${gemMsg?`<div class="gemmsg">${gemMsg}</div>`:''}
+    <div class="fbtitle">${ok?rnd(PRAISE):rnd(OOPS)}</div>${ok&&Q.streak>=3?`<span class="combo">🔥 ${Q.streak} richtig am Stück</span>`:''}${!ok?`<div style="color:var(--muted)">Die richtige Antwort ist grün. ${Q.isBoss?'':'Die Frage kommt später nochmal!'}</div>`:''}</div></div>
     ${q.explain?`<div class="explain">${q.explain}</div>`:''}
     <button class="btn next" onclick="LernApp._next()">${dead?'Oh nein … ➜':'Weiter ➜'}</button></div>`;
-  setTimeout(()=>{const f=$('#fb .fb');if(f&&f.getBoundingClientRect().bottom>innerHeight)f.scrollIntoView({behavior:'smooth',block:'end'})},q.input?400:150);
+  setTimeout(()=>{const f=$('#fb .fb');if(f&&f.getBoundingClientRect().bottom>innerHeight)f.scrollIntoView({behavior:'smooth',block:'end'})},150);
   const pf=document.querySelector('.pfill');if(pf)pf.style.width=Math.round((Q.i+1)/Q.qs.length*100)+'%';
 }
 function next(){
-  if(!Q||Q.kind==='blitz')return;
-  if(Q.kind==='boss'&&Q.hearts<=0)return finish(true);
+  if(!Q)return;
+  if(Q.isBoss&&Q.hearts<=0)return finish(true);
   Q.i++;renderQ();
 }
-function resultBtns(m,primaryId,primaryLabel){
-  return `<div class="rbtns"><button class="btn" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button><button class="btn primary" onclick="LernApp.start('${primaryId}')">${primaryLabel}</button></div>`;
-}
-function badgesNew(){
-  return Q.newBadges.length?`<p><b>Neue Abzeichen!</b></p><div class="newbadges">${Q.newBadges.map(b=>`<div class="badge got"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div></div>`).join('')}</div>`:'';
-}
-function starsRow(stars){return `<div class="stars">${[1,2,3].map(n=>`<span class="star ${n<=stars?'on':''}" style="animation-delay:${.2+n*.3}s">★</span>`).join('')}</div>`}
 function finish(lost){
-  stopTimer();
-  const m=Q.m,w=Q.w,kind=Q.kind;
-  markDay(m);
-  /* ---- Blitzrunde ---- */
-  if(kind==='blitz'){
-    const old=S.blitz[m.id]||0,rec=Q.score>old;if(rec)S.blitz[m.id]=Q.score;
-    if(Q.score>=15)grant('blitz15');save();
-    app.innerHTML=`<div class="result" style="--wc:${w.color}"><div class="re">${rec?'🏆':'⚡'}</div>
-      <h2>${Q.score} richtig in ${w.seconds} Sekunden!</h2>
-      <p>${rec?(old?`Neuer Rekord! Vorher: ${old}`:'Dein erster Rekord!'):`Rekord: ${old} – schaffst du ihn beim nächsten Mal?`}</p>
-      <div class="rstats"><div>${Q.score}<small>richtig</small></div><div>${Q.bad||0}<small>falsch</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div></div>
-      <p class="challenge">👨‍👩‍👦 Fordere Mama oder Papa heraus: Wer schafft mehr?</p>
-      ${badgesNew()}${resultBtns(m,'blitz','⚡ Nochmal')}</div>`;
-    if(rec){sfx('win');bigConfetti()}else sfx('good');
-    Q=null;scrollTo(0,0);return;
-  }
-  /* ---- Schatzkiste ---- */
-  if(kind==='chest'){
-    save();const left=chestCount(m);
-    app.innerHTML=`<div class="result" style="--wc:${w.color}"><div class="re">💎</div>
-      <h2>${Q.gemsWon?`${Q.gemsWon} ${Q.gemsWon===1?'Edelstein':'Edelsteine'} gewonnen!`:'Weiter so!'}</h2>
-      <p>${left?`Noch ${left} knifflige ${left===1?'Frage':'Fragen'} in der Schatzkiste.`:'Die Schatzkiste ist leer – du kannst alle kniffligen Fragen! 🎉'}</p>
-      <div class="rstats"><div>💎 ${S.gems}<small>Edelsteine insgesamt</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div></div>
-      ${badgesNew()}${left?resultBtns(m,'chest','💎 Weiter sammeln'):`<div class="rbtns"><button class="btn primary" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button></div>`}</div>`;
-    if(Q.gemsWon){sfx('win');bigConfetti()}
-    Q=null;scrollTo(0,0);return;
-  }
-  /* ---- Welten, Endgegner, Probetest ---- */
-  let stars;
-  if(kind==='boss')stars=lost?0:Math.max(1,Math.round(Q.hearts/Q.lives*3));
-  else if(kind==='exam'){const p=Q.ok/Q.total;stars=p>=.9?3:p>=.75?2:1}
-  else stars=Q.errors===0?3:Q.errors<=2?2:1;
+  const m=Q.m,w=Q.w;let stars;
+  if(Q.isBoss)stars=lost?0:Math.max(1,Math.round(Q.hearts/Q.lives*3));else stars=Q.errors===0?3:Q.errors<=2?2:1;
   const k=starKey(m,w);if(stars>(S.stars[k]||0))S.stars[k]=stars;
-  if(stars>0)grant('first');if(stars===3&&kind==='world')grant('perfect');
-  if(kind==='boss'&&!lost)grant(w.gold?'gold':'boss');
-  if(kind==='exam'&&stars===3)grant('exam');
+  if(stars>0)grant('first');if(stars===3)grant('perfect');if(Q.isBoss&&!lost)grant('boss');
   if(m.worlds.every(x=>getStars(m,x)>0))grant('all');
   if(packStars(m)>=maxStars(m))grant('stars');
   if(LernApp.modules.filter(p=>p.worlds.every(x=>getStars(p,x)>0)).length>=3)grant('packs3');
   save();
-  const firstTry=kind==='boss'?Q.total-(Q.lives-Math.max(Q.hearts,0)):kind==='exam'?Q.ok:Q.total-Q.errors;
+  const firstTry=Q.isBoss?Q.total-(Q.lives-Math.max(Q.hearts,0)):Q.total-Q.errors;
   let emoji,title,msg;
   const bn=esc(w.name);
-  if(lost){emoji=w.icon;title=`${bn} war stärker …`;msg='Kein Problem! Deine Fehler liegen jetzt in der 💎 Schatzkiste – übe sie und probier es nochmal.'}
-  else if(kind==='boss'){emoji=w.gold?'👑':'🏆';title=`${bn} besiegt!`;msg=w.gold?'Unglaublich – nur mit einem Leben! Du bist ein echter Profi!':'Wahnsinn! Du bist bereit für den Test!'}
-  else if(kind==='exam'){emoji=stars===3?'🎓':stars===2?'😎':'💪';title=`${Q.ok} von ${Q.total} richtig`;msg=stars===3?'Wie im echten Test – und fast alles richtig! Super vorbereitet!':stars===2?'Richtig gut! Schau dir die Fehler unten an.':'Gut geübt! Schau dir die Fehler unten an und versuch es nochmal.'}
+  if(lost){emoji=w.icon;title=`${bn} war stärker …`;msg='Kein Problem! Schau dir den Spickzettel an und probier es nochmal.'}
+  else if(Q.isBoss){emoji='🏆';title=`${bn} besiegt!`;msg='Wahnsinn! Du bist bereit für den Test!'}
   else if(stars===3){emoji='🤩';title='Perfekt!';msg='Kein einziger Fehler – Wahnsinn!'}
   else if(stars===2){emoji='😎';title='Sehr gut!';msg='Fast perfekt! Schaffst du beim nächsten Mal 3 Sterne?'}
   else{emoji='💪';title='Geschafft!';msg='Übung macht den Meister – versuch es gleich nochmal!'}
-  const bossNow=kind==='world'&&m.boss&&m.worlds.every(x=>getStars(m,x)>0)&&!S.stars[m.id+'/boss'];
-  const goldNow=kind==='boss'&&!w.gold&&!lost&&!S.stars[m.id+'/gold'];
-  const bw=m.boss?bossW(m):null;
-  let primary=[w.id,'🔁 Nochmal'];
-  if(bossNow)primary=['boss',bw.icon+' Zum Endgegner'];
-  else if(goldNow)primary=['gold','🐲 Zum goldenen Gegner'];
-  else if(lost&&chestCount(m))primary=['chest','💎 Zur Schatzkiste'];
-  const wrongs=kind==='exam'&&Q.wrongs.length?`<div class="wrongs"><h3>So wäre es richtig:</h3>${Q.wrongs.map(x=>`<div class="wrong"><div class="wp">${esc(x.p)}</div><div><s>${esc(x.given)}</s> → <b>${esc(x.answer)}</b></div></div>`).join('')}</div>`:'';
+  const bossNow=!Q.isBoss&&m.boss&&m.worlds.every(x=>getStars(m,x)>0)&&!S.stars[m.id+'/boss'];
+  const bw=m.boss?bossWorld(m):null;
   app.innerHTML=`<div class="result" style="--wc:${w.color}">
     <div class="re">${emoji}</div><h2>${title}</h2><p>${msg}</p>
-    ${starsRow(stars)}
-    <div class="rstats"><div>${firstTry} / ${Q.total}<small>${kind==='exam'?'richtig':'beim 1. Versuch richtig'}</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div><div>🔥 ${Q.maxStreak}<small>beste Serie</small></div></div>
-    ${wrongs}${badgesNew()}
-    ${bossNow?`<p class="awake">${bw.icon} ${esc(bw.name)} ist erwacht! Traust du dich?</p>`:''}
-    ${goldNow?`<p class="awake gold">🐲 Ein goldener Drache ist aufgetaucht … nur 1 Leben!</p>`:''}
-    ${resultBtns(m,primary[0],primary[1])}</div>`;
+    <div class="stars">${[1,2,3].map(n=>`<span class="star ${n<=stars?'on':''}" style="animation-delay:${.2+n*.3}s">★</span>`).join('')}</div>
+    <div class="rstats"><div>${firstTry} / ${Q.total}<small>beim 1. Versuch richtig</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div><div>🔥 ${Q.maxStreak}<small>beste Serie</small></div></div>
+    ${Q.newBadges.length?`<p><b>Neue Abzeichen!</b></p><div class="newbadges">${Q.newBadges.map(b=>`<div class="badge got"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div></div>`).join('')}</div>`:''}
+    ${bossNow?`<p style="margin-top:12px;color:#dc2626;font-weight:600">${bw.icon} ${esc(bw.name)} ist erwacht! Traust du dich?</p>`:''}
+    <div class="rbtns"><button class="btn" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button><button class="btn primary" onclick="LernApp.start('${bossNow?'boss':w.id}')">${bossNow?bw.icon+' Zum Endgegner':'🔁 Nochmal'}</button></div></div>`;
   [1,2,3].forEach(n=>{if(n<=stars)setTimeout(()=>{sfx('good');const s=document.querySelectorAll('.star')[n-1];if(s){const r=s.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,25,.9)}},500+n*300)});
   if(!lost){sfx('win');bigConfetti()}else sfx('bad');
   Q=null;scrollTo(0,0);
@@ -562,7 +349,6 @@ function finish(lost){
 
 addEventListener('keydown',e=>{
   if(!Q||document.querySelector('.modal'))return;
-  if(e.target&&e.target.tagName==='INPUT')return;
   if(!Q.locked&&/^[1-9]$/.test(e.key)){const i=+e.key-1;if(i<Q.opts.length)answer(i)}
   else if(Q.locked&&(e.key==='Enter'||e.key===' ')){e.preventDefault();next()}
 });
@@ -575,14 +361,12 @@ document.addEventListener('touchmove',e=>{if(e.touches.length>1||(e.scale&&e.sca
 /* ================= Public API ================= */
 Object.assign(LernApp,{
   go,start,
-  _answer:answer,_submit:submit,_next:next,_cheat:cheat,_resetAsk:resetAsk,
-  _quit(){stopTimer();Q=null;route()},
-  _locked(msg){toast('🔒',msg||'Noch gesperrt!')},
+  _answer:answer,_next:next,_cheat:cheat,_resetAsk:resetAsk,
+  _quit(){Q=null;route()},
+  _locked(){toast('🔒','Schaffe zuerst alle Welten!')},
   _setName(v){S.name=v.trim();save();route()},
   _toggleSound(){S.sound=!S.sound;save();route()},
-  _reset(btn){S=Object.assign(FRESH(),{name:S.name,sound:S.sound});save();btn.closest('.modal').remove();route()},
-  /** nur für tools/check.js */
-  _internals:{pool,writePool,byKey,findWorld,starWorlds,cur:()=>Q}
+  _reset(btn){S=Object.assign(FRESH(),{name:S.name,sound:S.sound});save();btn.closest('.modal').remove();route()}
 });
 
 /* ================= Boot & offline ================= */

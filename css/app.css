@@ -1,7 +1,6 @@
 :root{--ink:#1f2140;--muted:#6b6f8e;--good:#22c55e;--good-d:#15803d;--bad:#ef4444;--bad-d:#b91c1c;--gold:#fbbf24;--card:#fff}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
-body{min-height:100vh}
 body{font-family:'Fredoka',ui-rounded,system-ui,sans-serif;color:var(--ink);
   background:linear-gradient(160deg,#4338ca 0%,#7c3aed 45%,#c026d3 80%,#db2777 100%);background-attachment:fixed;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
 button{font-family:inherit;cursor:pointer;border:none;color:inherit}
@@ -188,50 +187,3 @@ input{-webkit-user-select:text;user-select:text}
 .empty{color:#fff;opacity:.85;text-align:center;padding:12px}
 .updbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:90;background:#fff;border-radius:18px;padding:10px 12px 10px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;font-weight:600;animation:slideup .4s}
 .updbar .btn{font-size:16px;padding:8px 14px}
-
-/* ---------- Spezial-Missionen ---------- */
-.world .wx{margin-top:8px;font-weight:600;font-size:15px;background:rgba(255,255,255,.22);display:inline-block;border-radius:99px;padding:3px 10px}
-.world.goldw:not(.locked){background:linear-gradient(135deg,#92400e,#d97706 35%,#fde047 50%,#d97706 65%,#92400e);background-size:250% 100%;animation:popin .5s cubic-bezier(.2,1.6,.4,1) backwards,goldshine 3s linear infinite}
-@keyframes goldshine{from{background-position:100% 0}to{background-position:-150% 0}}
-.goldq .qcard{border-top-color:#eab308;box-shadow:0 10px 0 rgba(0,0,0,.2),0 0 30px rgba(250,204,21,.6)}
-.awake{margin-top:12px;color:#dc2626;font-weight:600}
-.awake.gold{color:#b45309}
-.challenge{margin-top:8px;font-weight:600;color:#1d4ed8!important}
-
-/* Tages-Serie */
-.daystrip h3{margin-bottom:8px}
-.days{display:flex;gap:8px;justify-content:space-between}
-.day{flex:1;text-align:center;border-radius:16px;padding:6px 2px;background:#f3f4f6;min-width:0}
-.day small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
-.day span{font-size:26px;line-height:1.2}
-.day.did{background:linear-gradient(180deg,#fed7aa,#fdba74)}
-.day.did span{animation:flame .8s ease-in-out infinite alternate;display:inline-block}
-.day.today{background:#ede9fe;outline:3px dashed #a78bfa}
-.day.test{background:#fee2e2}
-.day.test.did{background:linear-gradient(180deg,#fed7aa,#fdba74)}
-.dmsg{margin-top:8px;font-size:15px;color:var(--muted);text-align:center}
-.dmsg b{color:#ea580c}
-
-/* Schreib-Modus */
-.wform{display:flex;gap:10px;flex-wrap:wrap}
-.wform input{flex:1;min-width:180px;font:inherit;font-size:24px;font-weight:600;padding:12px 16px;border-radius:18px;border:3px solid #ddd6fe;background:#f5f3ff;color:var(--ink);outline:none;-webkit-appearance:none;appearance:none}
-.wform input:focus{border-color:var(--wc)}
-.wform input.right{border-color:var(--good);background:#dcfce7;color:var(--good-d)}
-.wform input.wrong{border-color:var(--bad);background:#fee2e2;color:var(--bad-d);text-decoration:line-through}
-.wform .btn{font-size:20px}
-.whint{text-align:center;color:var(--muted);font-size:14px;margin-top:8px}
-.fbsub{color:var(--muted)}
-.fbsub b{color:var(--good-d)}
-.gemmsg{background:linear-gradient(90deg,#fce7f3,#fbcfe8);color:#9d174d;font-weight:600;border-radius:14px;padding:8px 12px;margin-bottom:10px}
-.wrongs{text-align:left;margin:14px 0;background:#fafaff;border-radius:18px;padding:12px 14px}
-.wrongs h3{font-size:18px;margin-bottom:6px}
-.wrong{padding:8px 0;border-top:1px solid #ede9fe;font-size:17px}
-.wrong:first-of-type{border-top:none}
-.wrong .wp{color:var(--muted);font-size:14px}
-.wrong s{color:var(--bad-d)}
-.wrong b{color:var(--good-d)}
-
-/* Blitzrunde */
-.tleft.urgent{background:linear-gradient(180deg,#f87171,#dc2626);animation:flame .4s ease-in-out infinite alternate}
-.tfill{transition:width .1s linear!important;background:linear-gradient(90deg,#60a5fa,#2563eb)!important}
-.blitzfb{border-left-width:10px;padding:12px 16px;font-size:20px;animation:slideup .2s}
