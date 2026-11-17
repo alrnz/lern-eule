@@ -66,8 +66,8 @@ LernApp.register({
 Nützliche CSS-Klassen in `prompt`/`explain`: `bigword`, `chain` + `st` + `arr`, `mini`, `hl` (Markierung), `<b>`.
 
 ## Deploy
-Live: https://lernen.lrnz.net/ (GitHub Pages aus `main`, Repo `alrnz/lern-eule`, öffentlich; Domain über `CNAME`-Datei, DNS bei antagus: CNAME lernen → alrnz.github.io).
-Die Domain nie wechseln: localStorage hängt an der Domain, sonst ist der Fortschritt weg.
+Live: https://alrnz.github.io/lern-eule/ (GitHub Pages aus `main`, Repo `alrnz/lern-eule`, öffentlich).
+Die Adresse nicht wechseln: localStorage hängt an der Domain, sonst ist der Fortschritt weg.
 Deploy = committen und `main` pushen; Pages ist nach ca. 1 Minute aktuell.
 Immer `/usr/bin/git` verwenden: das ältere `/usr/local/bin/git` kann das eingestellte SSH-Signieren nicht.
 
