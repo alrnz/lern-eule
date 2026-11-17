@@ -222,6 +222,7 @@ const PREFIX='lernpaket-';
 let CUR=null; // aktuelles Lernpaket
 function route(){
   stopTimer();Q=null;
+  if(tryReload())return;
   const h=location.hash.slice(1);
   const m=h.indexOf(PREFIX)===0?LernApp.modules.find(x=>x.id===h.slice(PREFIX.length)):null;
   if(m){CUR=m;renderPack(m)}else{CUR=null;renderHome()}
@@ -363,8 +364,18 @@ function cheat(){
   <button class="btn primary" style="width:100%" onclick="this.closest('.modal').remove()">Alles klar!</button>`,true);
 }
 function resetAsk(){
-  modal(`<div style="text-align:center"><h2>Alles zurücksetzen?</h2><p style="margin-bottom:16px;font-size:18px">Sterne, XP, Abzeichen und Edelsteine werden gelöscht.</p>
-  <div class="rbtns"><button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button><button class="btn primary" onclick="LernApp._reset(this)">Ja, neu starten</button></div></div>`);
+  // Elternsperre: Rechenaufgabe, die ein Kind in Klasse 2–3 noch nicht im Kopf löst
+  const a=12+Math.floor(Math.random()*8),b=3+Math.floor(Math.random()*7);
+  const m=modal(`<div style="text-align:center"><h2>Alles zurücksetzen?</h2><p style="margin-bottom:12px;font-size:18px">Sterne, XP, Abzeichen und Edelsteine werden gelöscht. Das kann man nicht rückgängig machen!</p>
+  <p style="margin-bottom:8px;font-size:16px">Nur für Eltern: Wie viel ist <b>${a} × ${b}</b>?</p>
+  <form class="wform" style="justify-content:center;margin-bottom:8px" onsubmit="return false"><input id="rsum" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ergebnis"></form>
+  <div class="rbtns"><button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button><button class="btn primary" id="rgo">Ja, neu starten</button></div></div>`);
+  const inp=m.querySelector('#rsum'),go=()=>{
+    if(inp.value.trim()===String(a*b))return LernApp._reset(m.querySelector('#rgo'));
+    m.remove();modal(`<div style="text-align:center"><h2>Nicht zurückgesetzt</h2><p style="margin-bottom:16px;font-size:18px">Das Ergebnis stimmt nicht. Dein Fortschritt bleibt erhalten. 🦉</p><div class="rbtns"><button class="btn primary" onclick="this.closest('.modal').remove()">OK</button></div></div>`);
+  };
+  m.querySelector('#rgo').onclick=go;
+  m.querySelector('form').onsubmit=e=>{e.preventDefault();go();return false};
 }
 
 /* ================= Quiz ================= */
@@ -620,21 +631,22 @@ function boot(){
   if(!Array.isArray(SAVED.days)&&S.answered>0&&S.days.length===0){S.days=[dkey(today0())];save()}
   route();
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
-    navigator.serviceWorker.register('sw.js').then(reg=>{
-      reg.addEventListener('updatefound',()=>{
-        const nw=reg.installing;if(!nw)return;
-        nw.addEventListener('statechange',()=>{
-          if(nw.state==='installed'&&navigator.serviceWorker.controller)showUpdate();
-        });
-      });
+    const sw=navigator.serviceWorker,hadCtrl=!!sw.controller;
+    // Neuer Service Worker hat übernommen (skipWaiting + claim in sw.js) → neue Inhalte laden.
+    sw.addEventListener('controllerchange',()=>{if(hadCtrl){UPD=true;tryReload()}});
+    sw.register('sw.js').then(reg=>{
+      // iOS prüft beim Zurückholen aus dem Hintergrund nicht von selbst → selbst nachfragen.
+      const check=()=>{if(navigator.onLine!==false)reg.update().catch(()=>{})};
+      document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){check();tryReload()}});
+      addEventListener('pageshow',e=>{if(e.persisted)check()});
+      setInterval(check,15*60*1000);
     }).catch(()=>{});
   }
 }
-function showUpdate(){
-  if(document.querySelector('.updbar'))return;
-  const d=document.createElement('div');d.className='updbar';
-  d.innerHTML='✨ Neue Inhalte da! <button class="btn primary">Laden</button>';
-  d.querySelector('button').onclick=()=>location.reload();
-  document.body.appendChild(d);
+/* Update erst laden, wenn gerade kein Quiz läuft und kein Fenster offen ist – sonst beim nächsten Seitenwechsel. */
+var UPD=false;
+function tryReload(){
+  if(!UPD||Q||document.querySelector('.modal'))return false;
+  UPD=false;location.reload();return true;
 }
 })();

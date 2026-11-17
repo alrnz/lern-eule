@@ -1,9 +1,9 @@
 /* Service Worker: macht die App offline-fähig.
  * Strategie: eigene Dateien "network first" (online immer aktuell, offline aus dem Cache),
  * Google Fonts "cache first".
- * Bei jedem Deploy VERSION erhöhen, dann sehen offene Apps den "Neue Inhalte da!"-Hinweis.
+ * Bei jedem Deploy VERSION erhöhen, dann laden offene Apps die neuen Inhalte von selbst (nicht mitten im Quiz).
  */
-const VERSION='2026-11-17-10';
+const VERSION='2026-11-17-12';
 const CACHE='lern-eule-'+VERSION;
 const SHELL=['./','index.html','css/app.css','js/app.js','modules/index.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 

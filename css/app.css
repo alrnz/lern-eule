@@ -186,8 +186,6 @@ input{-webkit-user-select:text;user-select:text}
 .datechip.soon{background:#fef3c7;color:#92400e}
 .datechip.past{background:#e5e7eb;color:#4b5563}
 .empty{color:#fff;opacity:.85;text-align:center;padding:12px}
-.updbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:90;background:#fff;border-radius:18px;padding:10px 12px 10px 16px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;font-weight:600;animation:slideup .4s}
-.updbar .btn{font-size:16px;padding:8px 14px}
 
 /* ---------- Spezial-Missionen ---------- */
 .world .wx{margin-top:8px;font-weight:600;font-size:15px;background:rgba(255,255,255,.22);display:inline-block;border-radius:99px;padding:3px 10px}

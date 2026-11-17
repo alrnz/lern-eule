@@ -187,6 +187,6 @@ LernApp.register({
   ],
   boss:{name:'Grammatik-Drache',icon:'🐉',count:15,lives:3},
   // Spannung bis zum Test: jeden Tag kommt etwas Neues dazu
-  unlock:{chest:'2026-11-18',blitz:'2026-11-18',gold:'2026-11-18',exam:'2026-11-19'}
+  unlock:{blitz:'2026-11-17',chest:'2026-11-18',gold:'2026-11-18',exam:'2026-11-19'}
 });
 })();
