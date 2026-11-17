@@ -3,7 +3,7 @@
  * Google Fonts "cache first".
  * Bei jedem Deploy VERSION erhöhen, dann sehen offene Apps den "Neue Inhalte da!"-Hinweis.
  */
-const VERSION='2026-11-17-3';
+const VERSION='2026-11-17-4';
 const CACHE='lern-eule-'+VERSION;
 const SHELL=['./','index.html','css/app.css','js/app.js','modules/index.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 
@@ -17,7 +17,8 @@ self.addEventListener('fetch',e=>{
   const req=e.request;if(req.method!=='GET')return;
   const url=new URL(req.url);
   if(url.origin===location.origin){
-    e.respondWith(fetch(req).then(res=>{
+    // no-cache: immer beim Server nachfragen (304 ist billig), sonst hält der Browser-Cache Updates bis zu 10 Min. zurück
+    e.respondWith(fetch(req.url,{cache:'no-cache',credentials:'same-origin'}).then(res=>{
       if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy))}
       return res;
     }).catch(()=>caches.match(req,{ignoreSearch:true}).then(r=>r||caches.match('index.html'))));
