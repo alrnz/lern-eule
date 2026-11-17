@@ -60,7 +60,7 @@ const VL=[
  ['star_','k','starke Arme'],['kran_','k','kranke Kinder'],['er schen_t','k','schenken'],['sie win_t','k','winken'],['er den_t','k','denken'],
  ['der Kor_','b','die Körbe'],['der Die_','b','die Diebe'],['das Kal_','b','die Kälber'],['gel_','b','gelbe Blumen'],
  ['hal_','b','halbe Pizza'],['lie_','b','liebe Grüße'],['sie le_t','b','leben'],['er gi_t','b','geben'],['es kle_t','b','kleben'],
- ['er hu_t','p','hupen'],['sie pum_t','p','pumpen'],['plum_','p','plumpe Füße'],['der Ty_','p','die Typen']
+ ['er hu_t','p','hupen'],['sie pum_t','p','pumpen'],['der Mo_s','p','die Möpse'],['der Ty_','p','die Typen']
 ];
 const PAIR={d:['d','t'],t:['d','t'],g:['g','k'],k:['g','k'],b:['b','p'],p:['b','p']};
 

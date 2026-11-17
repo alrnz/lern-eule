@@ -43,9 +43,12 @@ window.LernApp=LernApp;
 
 /* ================= Save state ================= */
 const KEY='lern-eule-v1';
-const FRESH=()=>({name:'',xp:0,stars:{},badges:[],answered:0,bestCombo:0,sound:true});
+const FRESH=()=>({name:'',xp:0,stars:{},badges:[],answered:0,correct:0,bestCombo:0,sound:true});
 let S=FRESH();
-try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+let SAVED={};
+try{SAVED=JSON.parse(localStorage.getItem(KEY)||'{}')||{};Object.assign(S,SAVED)}catch(e){}
+// Ältere Spielstände hatten noch keinen Zähler für richtige Antworten: aus den XP schätzen.
+if(typeof SAVED.correct!=='number')S.correct=Math.min(S.answered,Math.round(S.xp/14));
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const starKey=(m,w)=>m.id+'/'+w.id;
 const getStars=(m,w)=>S.stars[starKey(m,w)]||0;
@@ -72,8 +75,14 @@ function countdownText(m){
 const isDone=m=>{const d=daysUntil(m.date);return d!==null&&d<0};
 
 /* ================= Levels & badges ================= */
-const TITLES=['Wort-Entdecker','Wissens-Sammler','Lern-Lehrling','Wissens-Zauberer','Lern-Profi','Schlau-Held','Lern-Meister','Wissens-Legende','Eulen-Genie'];
-const level=()=>Math.floor(S.xp/100)+1;
+const TITLES=['Wort-Entdecker','Wissens-Sammler','Lern-Lehrling','Wissens-Zauberer','Lern-Profi','Schlau-Held','Lern-Meister','Wissens-Legende','Eulen-Genie',
+ 'Sprach-Ass','Wort-Ninja','Satz-Pirat','Regel-Ritter','Grammatik-Zauberer','Rechtschreib-Pilot','Eulen-Kapitän','Wissens-Drachenreiter','Sprach-Superstar','Wort-Weltmeister','Grammatik-Großmeister',
+ 'Eulen-König','Wort-Astronaut','Satz-Superheld','Regel-Rakete','Sprach-Magier','Grammatik-Titan','Wissens-Phönix','Lern-Legende','Galaxie-Genie','Universums-Eule'];
+/* Level-Kurve: bis Level 20 je 100 XP. Ab Level 20 wird jede Stufe 30 XP teurer (130, 160, 190 …). */
+const STEP_UNTIL=20,BASE=100,GROW=30;
+const costOf=l=>l<STEP_UNTIL?BASE:BASE+(l-STEP_UNTIL+1)*GROW; // XP von Level l nach l+1
+function levelInfo(xp){let l=1,rest=xp;while(rest>=costOf(l)){rest-=costOf(l);l++}return {lvl:l,into:rest,need:costOf(l)}}
+const level=()=>levelInfo(S.xp).lvl;
 const titleOf=l=>TITLES[Math.min(l-1,TITLES.length-1)];
 const BADGES=[
  {id:'first',icon:'🎉',name:'Erster Sieg',desc:'Eine Welt geschafft'},
@@ -170,11 +179,11 @@ addEventListener('hashchange',route);
 
 /* ================= Home ================= */
 function statsHTML(){
-  const lvl=level(),into=S.xp%100;
+  const L=levelInfo(S.xp),lvl=L.lvl,pct=Math.round(L.into/L.need*100);
   return `<div class="stats">
-    <div class="lvl"><div class="lvlbadge" data-l="${lvl}" style="--p:${into}%"></div>
-      <div style="flex:1"><div class="lvltitle">Level ${lvl} · ${titleOf(lvl)}</div><div class="xpbar"><div style="width:${into}%"></div></div><div class="xptext">${into} / 100 XP bis Level ${lvl+1}</div></div></div>
-    <div class="chips"><span title="Sterne">⭐ ${totalStars()}</span><span title="Beste Serie">🔥 ${S.bestCombo}</span><span title="Beantwortete Fragen">✅ ${S.answered}</span></div>
+    <div class="lvl"><div class="lvlbadge" data-l="${lvl}" style="--p:${pct}%"></div>
+      <div style="flex:1"><div class="lvltitle">Level ${lvl} · ${titleOf(lvl)}</div><div class="xpbar"><div style="width:${pct}%"></div></div><div class="xptext">${L.into} / ${L.need} XP bis Level ${lvl+1}${lvl>=STEP_UNTIL?' · ab jetzt wird jedes Level schwerer! 💪':''}</div></div></div>
+    <div class="chips"><span title="Sterne">⭐ ${totalStars()}</span><span title="Beste Serie">🔥 ${S.bestCombo}</span><span title="Richtige Antworten">✅ ${S.correct}</span></div>
   </div>`;
 }
 function packCard(m,i){
@@ -285,6 +294,7 @@ function answer(i){
   document.querySelectorAll('.gap').forEach(g=>{g.textContent=q.fill||q.answer;g.classList.add(ok?'gap-ok':'gap-bad')});
   S.answered++;
   if(ok){
+    S.correct++;
     Q.streak++;Q.maxStreak=Math.max(Q.maxStreak,Q.streak);
     const gain=10+Math.min(Q.streak-1,5)*2;
     const before=level();S.xp+=gain;Q.xpGain+=gain;

@@ -63,6 +63,8 @@ LernApp.register({
 | `big` | `true` = große Kacheln für einzelne Zeichen/Buchstaben |
 | `fill` | was in die Lücke kommt, falls nicht `answer` |
 
+Level: bis Level 20 je 100 XP, danach jede Stufe +30 XP (`costOf` in js/app.js).
+
 Nützliche CSS-Klassen in `prompt`/`explain`: `bigword`, `chain` + `st` + `arr`, `mini`, `hl` (Markierung), `<b>`.
 
 ## Deploy
