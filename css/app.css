@@ -160,7 +160,7 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
 /* ---------- App shell (Lernpakete) ---------- */
-html{background:#4338ca}
+html{background:#4338ca;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{-webkit-user-select:none;user-select:none;overscroll-behavior-y:none}
 input{-webkit-user-select:text;user-select:text}
 .topbar{display:flex;align-items:center;gap:12px;margin-bottom:12px}

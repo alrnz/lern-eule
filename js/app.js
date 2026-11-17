@@ -348,6 +348,11 @@ addEventListener('keydown',e=>{
   else if(Q.locked&&(e.key==='Enter'||e.key===' ')){e.preventDefault();next()}
 });
 
+/* ================= Kein Zoomen (iOS ignoriert user-scalable=no) ================= */
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1||(e.scale&&e.scale!==1))e.preventDefault()},{passive:false});
+// Doppeltipp-Zoom verhindert touch-action:manipulation in css/app.css.
+
 /* ================= Public API ================= */
 Object.assign(LernApp,{
   go,start,
