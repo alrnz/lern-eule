@@ -7,7 +7,7 @@ const el=()=>({getContext:()=>({setTransform(){},clearRect(){}}),classList:{add(
 let files=[];
 const ctx={console,setTimeout,location:{hash:'',protocol:'file:'},navigator:{},innerWidth:800,innerHeight:600,devicePixelRatio:1,
   addEventListener(){},scrollTo(){},requestAnimationFrame(){},localStorage:{getItem:()=>null,setItem(){}},
-  document:{querySelector:el,querySelectorAll:()=>[],createElement:el,body:el()}};
+  document:{addEventListener(){},querySelector:el,querySelectorAll:()=>[],createElement:el,body:el()}};
 ctx.window=ctx;vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(root,'js/app.js'),'utf8'),ctx);
 ctx.LernApp.loadModules=f=>{files=f};
