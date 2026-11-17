@@ -65,6 +65,11 @@ LernApp.register({
 
 Nützliche CSS-Klassen in `prompt`/`explain`: `bigword`, `chain` + `st` + `arr`, `mini`, `hl` (Markierung), `<b>`.
 
+## Deploy
+Live: https://alrnz.github.io/lern-eule/ (GitHub Pages aus `main`, Repo `alrnz/lern-eule`, öffentlich).
+Deploy = committen und `main` pushen; Pages ist nach ca. 1 Minute aktuell.
+Immer `/usr/bin/git` verwenden: das ältere `/usr/local/bin/git` kann das eingestellte SSH-Signieren nicht.
+
 ## Testen
 Lokal: `python3 -m http.server 8766` im Projektordner, dann http://localhost:8766.
 Der Service Worker läuft nur über https oder localhost.
