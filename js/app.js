@@ -190,6 +190,9 @@ function sortPacks(list){
   return list.slice().sort((a,b)=>{const da=daysUntil(a.date),db=daysUntil(b.date);
     if(da===null&&db===null)return 0;if(da===null)return 1;if(db===null)return -1;return da-db});
 }
+function badgesHTML(){
+  return `<div class="section"><h3>🏅 Abzeichen (${S.badges.length}/${BADGES.length})</h3><div class="bgrid">${BADGES.map(b=>`<div class="badge ${S.badges.indexOf(b.id)>=0?'got':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('')}</div></div>`;
+}
 function renderHome(){
   const active=sortPacks(LernApp.modules.filter(m=>!isDone(m)));
   const done=sortPacks(LernApp.modules.filter(isDone)).reverse();
@@ -203,7 +206,7 @@ function renderHome(){
   <div class="stitle">📚 Lernpakete</div>
   <div class="packs">${active.length?active.map(packCard).join(''):'<div class="empty">Gerade steht nichts an. 🎉</div>'}</div>
   ${done.length?`<div class="stitle">✅ Schon geschrieben</div><div class="packs">${done.map(packCard).join('')}</div>`:''}
-  <div class="section"><h3>🏅 Abzeichen (${S.badges.length}/${BADGES.length})</h3><div class="bgrid">${BADGES.map(b=>`<div class="badge ${S.badges.indexOf(b.id)>=0?'got':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('')}</div></div>
+  ${badgesHTML()}
   <div class="footer"><button class="btn ghost" onclick="LernApp._toggleSound()">${S.sound?'🔊 Ton an':'🔇 Ton aus'}</button><button class="btn ghost" onclick="LernApp._resetAsk()">↺ Neu starten</button></div>`;
   scrollTo(0,0);
 }
@@ -223,7 +226,9 @@ function renderPack(m){
   <div class="topbar"><button class="iconbtn" onclick="LernApp.go()" aria-label="Zurück">‹</button>
     <h1>${m.icon||''} ${esc(m.title)}<small>${esc(m.subject||'')}${m.date?' · '+fmtDate(m.date):''}</small></h1></div>
   <div class="hero"><div class="mascot">🦉</div><div class="bubble">${countdownText(m)}</div></div>
+  ${statsHTML()}
   <div class="worlds">${m.worlds.map((w,i)=>worldCard(m,w,i,false)).join('')}${m.boss?worldCard(m,bossWorld(m),m.worlds.length,bossLocked):''}</div>
+  ${badgesHTML()}
   <div class="footer">${hasRules?`<button class="btn ghost" onclick="LernApp._cheat()">📜 Spickzettel</button>`:''}<button class="btn ghost" onclick="LernApp.go()">🏠 Alle Lernpakete</button></div>`;
   scrollTo(0,0);
 }

@@ -3,7 +3,7 @@
  * Google Fonts "cache first".
  * Bei jedem Deploy VERSION erhöhen, dann sehen offene Apps den "Neue Inhalte da!"-Hinweis.
  */
-const VERSION='2026-11-17-4';
+const VERSION='2026-11-17-5';
 const CACHE='lern-eule-'+VERSION;
 const SHELL=['./','index.html','css/app.css','js/app.js','modules/index.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 
