@@ -142,6 +142,11 @@ function goldW(m){
 }
 const examW=m=>({id:'exam',kind:'exam',name:'Probetest',icon:'✍️',color:'#0f766e',color2:'#14b8a6',topic:'Antworten selbst schreiben – wie im echten Test!',count:m.examCount||12});
 const chestW=()=>({id:'chest',kind:'chest',name:'Fehler-Schatzkiste',icon:'💎',color:'#be185d',color2:'#ec4899',topic:'Deine kniffligen Fragen. 2× richtig = 1 Edelstein!'});
+// Blitzrunde: höchstens BLITZ_MAX Runden pro Tag (für alle Lernpakete zusammen). Gezählt wird beim Start.
+const BLITZ_MAX=10;
+function blitzLeft(){const d=dkey(today0()),b=S.blitzDay;return b&&b.d===d?Math.max(0,BLITZ_MAX-b.n):BLITZ_MAX}
+function useBlitz(){const d=dkey(today0());if(!S.blitzDay||S.blitzDay.d!==d)S.blitzDay={d,n:0};S.blitzDay.n++;save()}
+const BLITZ_DONE=`Für heute hast du alle ${BLITZ_MAX} Blitzrunden geschafft! ⚡ Morgen geht es weiter. Bis dahin warten die anderen Missionen auf dich! 🦉`;
 const blitzW=()=>({id:'blitz',kind:'blitz',name:'Blitzrunde',icon:'⚡',color:'#1d4ed8',color2:'#3b82f6',topic:'60 Sekunden – so viele richtig wie möglich!',seconds:60});
 /** Welten mit Sternen */
 const starWorlds=m=>m.worlds.concat(m.boss?[bossW(m),goldW(m)]:[]).concat(hasWrite(m)?[examW(m)]:[]);
@@ -308,13 +313,13 @@ function worldCard(m,w,i,locked,lockMsg){
   const st=getStars(m,w),hasStars=w.kind!=='chest'&&w.kind!=='blitz';
   let extra='';
   if(w.kind==='chest'){const c=chestCount(m);extra=`<div class="wx">${c?`${c} knifflige ${c===1?'Frage':'Fragen'} · 💎 ${S.gems}`:'Noch leer – super! 💎 '+S.gems}</div>`}
-  if(w.kind==='blitz'){const b=S.blitz[m.id]||0;extra=`<div class="wx">🏆 Rekord: ${b}</div>`}
+  if(w.kind==='blitz'){const b=S.blitz[m.id]||0,l=blitzLeft();extra=`<div class="wx">🏆 Rekord: ${b} · ${l?`noch ${l}× heute`:'morgen wieder'}</div>`;if(!l&&!locked){locked=true;lockMsg=BLITZ_DONE}}
   const empty=w.kind==='chest'&&!chestCount(m);
   const click=locked?`LernApp._locked('${esc(lockMsg||'')}')`:empty?`LernApp._locked('Die Schatzkiste füllt sich mit Fragen, die du falsch hattest.')`:`LernApp.start('${w.id}')`;
   return `<button class="world ${w.kind||''} ${w.gold?'goldw':''} ${locked?'locked':''}" style="--wc:${w.color};--wc2:${w.color2||w.color};animation-delay:${i*.06}s" onclick="${click}">
     <div class="wi">${locked?'🔒':w.icon}</div><div class="wn">${esc(w.name)}</div><div class="wt">${w.topic||''}</div>
     ${hasStars?`<div class="ws">${[1,2,3].map(n=>`<span class="${n<=st?'':'off'}">⭐</span>`).join('')}</div>`:extra}
-    <div class="play">${locked?'Gesperrt':empty?'Leer':st?'Nochmal ▶':'Los ▶'}</div></button>`;
+    <div class="play">${locked&&w.kind==='blitz'?'Morgen wieder 🌙':locked?'Gesperrt':empty?'Leer':st?'Nochmal ▶':'Los ▶'}</div></button>`;
 }
 function mysteryCard(m,w,i){
   const t=whenText(openDate(m,w.id));
@@ -392,6 +397,7 @@ function start(wid){
   const m=CUR;const w=findWorld(m,wid);if(!w||!isOpen(m,wid))return;
   stopTimer();
   const kind=w.kind||'world';let qs;
+  if(kind==='blitz'){if(!blitzLeft())return LernApp._locked(BLITZ_DONE);useBlitz()}
   if(kind==='boss')qs=mix(allChoice(m),w.count);
   else if(kind==='exam')qs=mix(m.worlds.map(writePool),w.count);
   else if(kind==='blitz')qs=mix(allChoice(m),60);
@@ -542,7 +548,7 @@ function finish(lost){
       <p>${rec?(old?`Neuer Rekord! Vorher: ${old}`:'Dein erster Rekord!'):`Rekord: ${old} – schaffst du ihn beim nächsten Mal?`}</p>
       <div class="rstats"><div>${Q.score}<small>richtig</small></div><div>${Q.bad||0}<small>falsch</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div></div>
       <p class="challenge">👨‍👩‍👦 Fordere Mama oder Papa heraus: Wer schafft mehr?</p>
-      ${badgesNew()}${resultBtns(m,'blitz','⚡ Nochmal')}</div>`;
+      ${badgesNew()}${(()=>{const l=blitzLeft();return l?`<p class="mini">Heute noch ${l} ${l===1?'Blitzrunde':'Blitzrunden'}.</p>${resultBtns(m,'blitz','⚡ Nochmal')}`:`<p>Das war deine letzte Blitzrunde für heute. Morgen geht's weiter! 🌙</p><div class="rbtns"><button class="btn primary" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button></div>`})()}</div>`;
     if(rec){sfx('win');bigConfetti()}else sfx('good');
     Q=null;scrollTo(0,0);return;
   }
