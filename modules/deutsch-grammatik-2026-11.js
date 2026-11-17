@@ -82,14 +82,15 @@ const STYPES={
 /* ---------- Fragen bauen ---------- */
 const naiveK=p=>p.endsWith('e')?p+'r':p+'er';
 const naiveS=p=>'am '+p+(/(t|d|z|s|ß|sch)$/.test(p)?'esten':'sten');
-const chainHTML=(p,k,s)=>`<div class="mini"><span><small>Grundstufe</small>${p}</span>→<span><small>Vergleichsstufe</small>${k}</span>→<span><small>Höchststufe</small>${s}</span></div>`;
+const chainHTML=(p,k,s)=>`<div class="mini"><span><small>Grundstufe</small>${p}</span>→<span><small>Vergleichsstufe</small>${k} als</span>→<span><small>Höchststufe</small>${s}</span></div>`;
 
 function qChain([p,k,s],which){
-  const ans=which==='s'?s:k;
-  const wrong=which==='s'?pick3(s,[naiveS(p),'am '+k+'sten',k,'mehr '+p,'am '+p]):pick3(k,[naiveK(p),'mehr '+p,s,p+'est','am '+k]);
+  const ka=k+' als'; // Vergleichsstufe immer mit „als“
+  const ans=which==='s'?s:ka;
+  const wrong=which==='s'?pick3(s,[naiveS(p),'am '+k+'sten',ka,'mehr '+p,'am '+p]):pick3(ka,[naiveK(p)+' als','mehr '+p+' als',s,p+' als','am '+k]);
   const gap='<span class="st gap">?</span>';
   return {task:'Welche Stufe fehlt?',
-    prompt:`<div class="chain"><span class="st">${p}</span><span class="arr">➜</span>${which==='s'?`<span class="st">${k}</span>`:gap}<span class="arr">➜</span>${which==='s'?gap:`<span class="st">${s}</span>`}</div>`,
+    prompt:`<div class="chain"><span class="st">${p}</span><span class="arr">➜</span>${which==='s'?`<span class="st">${ka}</span>`:gap}<span class="arr">➜</span>${which==='s'?gap:`<span class="st">${s}</span>`}</div>`,
     options:[ans].concat(wrong),answer:ans,explain:`So wird <b>${p}</b> gesteigert:`+chainHTML(p,k,s)};
 }
 function qCompSent([sent,p,lvl]){
