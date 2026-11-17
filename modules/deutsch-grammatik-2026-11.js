@@ -129,6 +129,34 @@ function qZeichen([s,t]){
     explain:`Das ist ein ${T.ex.replace('Ein ','')}`};
 }
 
+/* ---------- Schreib-Fragen (Probetest) ---------- */
+function wChain(a,which){
+  const q=qChain(a,which);
+  return {input:true,task:'Schreibe die fehlende Stufe!',prompt:q.prompt,answer:which==='s'?a[2]:a[1]+' als',accept:which==='s'?[a[2]]:[a[1]+' als',a[1]],explain:q.explain};
+}
+function wCompSent(c){
+  const q=qCompSent(c);
+  return {input:true,task:'Schreibe die richtige Form in die Lücke!',prompt:q.prompt,answer:q.answer,explain:q.explain};
+}
+function wAlsWie(c){
+  const q=qAlsWie(c);
+  return {input:true,task:'als oder wie? Schreibe es!',prompt:q.prompt,answer:q.answer,explain:q.explain};
+}
+function wNomen([n,a]){
+  return {input:true,task:'Bilde aus dem Nomen ein Adjektiv!',prompt:`<div class="bigword">${n} → <span class="gap">?</span></div>`,answer:a,
+    explain:`${n} → <b>${a.replace(/(isch|lich|ig)$/,'<span class="hl">$1</span>')}</b><br>Adjektive schreibt man <b>klein</b>!`};
+}
+function wVerl(v){
+  const q=qVerl(v),full=v[0].replace('_',v[1]),parts=full.split(' ');
+  const accept=[full];
+  if(parts.length>1){accept.push(cap(full));accept.push(parts.slice(1).join(' '))}
+  return {input:true,task:'Schreibe das ganze Wort richtig!',prompt:q.prompt,answer:full,accept,fill:v[1],explain:q.explain};
+}
+function wZeichen(x){
+  const q=qZeichen(x);
+  return {input:true,task:'Welches Satzzeichen fehlt? Tippe es ein!',prompt:q.prompt,answer:q.answer,explain:q.explain};
+}
+
 /* ---------- Registrieren ---------- */
 LernApp.register({
   id:'deutsch-grammatik-2026-11',
@@ -142,17 +170,23 @@ LernApp.register({
   worlds:[
     {id:'steigern',name:'Steiger-Turm',icon:'🚀',color:'#f97316',color2:'#f59e0b',topic:'Adjektive steigern: schnell, schneller als, am schnellsten',
      rules:'schnell → <b>schneller als</b> → <b>am schnellsten</b><br>Vorsicht, Ausnahmen: gut → besser → am besten · viel → mehr → am meisten · gern → lieber → am liebsten · hoch → höher → am höchsten<br>Verschieden: <b>größer als</b> · Gleich: <b>so groß wie</b>',
-     cats:()=>[ADJ.map(a=>()=>qChain(a,'s')),ADJ.map(a=>()=>qChain(a,'k')),COMP_SENT.map(c=>()=>qCompSent(c)),ALSWIE.map(c=>()=>qAlsWie(c))]},
+     cats:()=>[ADJ.map(a=>()=>qChain(a,'s')),ADJ.map(a=>()=>qChain(a,'k')),COMP_SENT.map(c=>()=>qCompSent(c)),ALSWIE.map(c=>()=>qAlsWie(c))],
+     write:()=>ADJ.map(a=>()=>wChain(a,'s')).concat(ADJ.map(a=>()=>wChain(a,'k')),COMP_SENT.map(c=>()=>wCompSent(c)),ALSWIE.map(c=>()=>wAlsWie(c)))},
     {id:'nomen',name:'Wort-Werkstatt',icon:'🛠️',color:'#16a34a',color2:'#10b981',topic:'Aus Nomen Adjektive bilden: das Glück → glücklich',
      rules:'Mit den Endungen <b>-ig</b>, <b>-lich</b>, <b>-isch</b>: das Glück → glück<b>lich</b>, die Sonne → sonn<b>ig</b>, der Sturm → stürm<b>isch</b><br>Adjektive schreibt man <b>klein</b>!',
-     cats:()=>[NA.map(x=>()=>qNomen(x)),NA.map(x=>()=>qEndung(x))]},
+     cats:()=>[NA.map(x=>()=>qNomen(x)),NA.map(x=>()=>qEndung(x))],
+     write:()=>NA.map(x=>()=>wNomen(x))},
     {id:'verl',name:'Detektiv-Büro',icon:'🔍',color:'#7c3aed',color2:'#a855f7',topic:'d oder t? g oder k? b oder p? Wörter verlängern',
      rules:'Am Wortende hört man es nicht. Darum: <b>Wort verlängern!</b><br>der Hund → die Hun<b>d</b>e · der Berg → die Ber<b>g</b>e · der Korb → die Kör<b>b</b>e<br>Bei Verben: Grundform bilden: sie sagt → sa<b>g</b>en',
-     cats:()=>['dt','gk','bp'].map(pr=>VL.filter(v=>pr.indexOf(v[1])>=0).map(v=>()=>qVerl(v)))},
+     cats:()=>['dt','gk','bp'].map(pr=>VL.filter(v=>pr.indexOf(v[1])>=0).map(v=>()=>qVerl(v))),
+     write:()=>VL.map(v=>()=>wVerl(v))},
     {id:'satz',name:'Satz-Insel',icon:'🏝️',color:'#0284c7',color2:'#06b6d4',topic:'Satzarten: Frage-, Aussage- und Aufforderungssatz',
      rules:'<b>Aussagesatz</b> erzählt etwas → <b>.</b><br><b>Fragesatz</b> fragt (W-Wort oder Verb vorne) → <b>?</b><br><b>Aufforderungssatz</b> ist Bitte oder Befehl → <b>!</b>',
-     cats:()=>[SATZ.map(s=>()=>qSatzTyp(s)),SATZ.map(s=>()=>qZeichen(s))]}
+     cats:()=>[SATZ.map(s=>()=>qSatzTyp(s)),SATZ.map(s=>()=>qZeichen(s))],
+     write:()=>SATZ.map(s=>()=>wZeichen(s))}
   ],
-  boss:{name:'Grammatik-Drache',icon:'🐉',count:15,lives:3}
+  boss:{name:'Grammatik-Drache',icon:'🐉',count:15,lives:3},
+  // Spannung bis zum Test: jeden Tag kommt etwas Neues dazu
+  unlock:{chest:'2026-11-18',blitz:'2026-11-18',gold:'2026-11-18',exam:'2026-11-19'}
 });
 })();

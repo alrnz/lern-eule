@@ -44,9 +44,13 @@ LernApp.register({
     rules:'HTML für den Spickzettel',
     // Liste von Kategorien; jede Kategorie ist eine Liste von Funktionen, die je eine Frage bauen.
     // Gezogen wird reihum aus den Kategorien, damit die Fragetypen gemischt sind.
-    cats:()=>[ [ ()=>({...frage}) , ... ], [ ... ] ]
+    cats:()=>[ [ ()=>({...frage}) , ... ], [ ... ] ],
+    // optional: Schreib-Fragen (input:true) für den Probetest. Reihenfolge nie ändern, nur hinten anhängen
+    // (die Schatzkiste merkt sich Fragen über ihre Position, z. B. "nomen:w:5" oder "nomen:c0:5").
+    write:()=>[ ()=>({input:true,...frage}), ... ]
   }],
-  boss:{name:'Zahlen-Drache', icon:'🐉', count:15, lives:3}   // optional, mischt alle Welten
+  boss:{name:'Zahlen-Drache', icon:'🐉', count:15, lives:3}   // optional, mischt alle Welten,
+  unlock:{chest:'2026-12-01', blitz:'2026-12-01', gold:'2026-12-02', exam:'2026-12-03'} // optional: Spezial-Missionen erst ab Datum (vorher „Geheime Mission“)
 });
 })();
 ```
@@ -62,7 +66,12 @@ LernApp.register({
 | `fixed` | `true` = Reihenfolge der Optionen nicht mischen (z. B. `. ? !`) |
 | `big` | `true` = große Kacheln für einzelne Zeichen/Buchstaben |
 | `fill` | was in die Lücke kommt, falls nicht `answer` |
+| `input` | `true` = Schreib-Frage (Textfeld statt Knöpfe, nur in `write`) |
+| `accept` | bei Schreib-Fragen: alle akzeptierten Schreibweisen (muss `answer` enthalten). Groß/klein zählt! |
 
+Spezial-Missionen baut die App automatisch für jedes Lernpaket: Probetest (wenn es `write` gibt),
+Fehler-Schatzkiste (falsch beantwortete Fragen, 2× richtig = 💎), Blitzrunde (60 s, Rekord), Endgegner und
+goldener Endgegner (1 Leben, nach dem Endgegner). Reservierte Welt-IDs: boss, gold, exam, chest, blitz.
 Level: bis Level 20 je 100 XP, danach jede Stufe +30 XP (`costOf` in js/app.js).
 
 Nützliche CSS-Klassen in `prompt`/`explain`: `bigword`, `chain` + `st` + `arr`, `mini`, `hl` (Markierung), `<b>`.
