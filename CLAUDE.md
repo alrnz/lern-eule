@@ -128,6 +128,12 @@ letzte Woche, ältere eingeklappt. Wörter einer Woche nie umsortieren (Schatzki
 Spiele vorerst sperren: `closed:['blick',…]` in der Woche (ohne Datum, Karte „Geheime Welt – bald“). Später freischalten:
 aus `closed` nehmen und `unlock:{blick:'JJJJ-MM-TT'}` setzen, dann kommt die Ankündigung. `closed` geht in jedem Lernpaket.
 
+## Spielstand sichern
+Startseite unten: „💾 Sichern / Laden“ (hinter der Eltern-Malaufgabe). Sichern = JSON-Datei `lern-eule-<Name>-<Datum>.json`
+mit `{app:'lern-eule',v:1,saved,state}` (iPhone/iPad: Teilen-Menü, sonst Download). Laden ersetzt den ganzen Spielstand
+nach Rückfrage; `fixState()` in js/app.js ergänzt fehlende Felder. Neue Felder im Spielstand dort mit Standardwert eintragen.
+Beim Start bittet die App um dauerhaften Speicher (`navigator.storage.persist()`).
+
 ## Deploy
 Live: https://alrnz.github.io/lern-eule/ (GitHub Pages aus `main`, Repo `alrnz/lern-eule`, öffentlich).
 Die Adresse nicht wechseln: localStorage hängt an der Domain, sonst ist der Fortschritt weg.

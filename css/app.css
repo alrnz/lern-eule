@@ -310,3 +310,10 @@ details.older .packs{margin-top:8px}
 .dgoal.did{background:#dcfce7;color:#166534}
 .dchest{font-size:40px;animation:bob 1.6s ease-in-out infinite}
 .dchest.open{animation:none}
+/* Sichern / Laden */
+.bnote{font-size:14px;color:var(--muted);margin:8px 0 14px}
+.bmenu{display:grid;gap:10px}
+.bmenu .btn{background:#f5f3ff}
+.bmenu .btn.primary{background:linear-gradient(180deg,#facc15,#f59e0b)}
+.bmenu .bclose{background:none;box-shadow:none;color:var(--muted)}
+.bok{text-align:center;margin-bottom:12px;color:var(--good-d);font-weight:700;font-size:18px}

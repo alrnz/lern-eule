@@ -52,12 +52,14 @@ let SAVED={};
 try{SAVED=JSON.parse(localStorage.getItem(KEY)||'{}')||{};Object.assign(S,SAVED)}catch(e){}
 // Ältere Spielstände hatten noch keinen Zähler für richtige Antworten: aus den XP schätzen.
 if(typeof SAVED.correct!=='number')S.correct=Math.min(S.answered,Math.round(S.xp/14));
-['mistakes','blitz'].forEach(k=>{if(!S[k]||typeof S[k]!=='object')S[k]={}});
-if(!Array.isArray(S.days))S.days=[];
-if(typeof S.gems!=='number')S.gems=0;
-if(!Array.isArray(S.seen))S.seen=[]; // schon angekündigte Freischaltungen
-if(!S.pc||typeof S.pc!=='object')S.pc={}; // richtige Antworten je Lernpaket
-if(!Array.isArray(S.fullDays))S.fullDays=[]; // Tage mit geöffneter Tages-Truhe
+/** Fehlende oder kaputte Felder ergänzen (ältere Spielstände, geladene Sicherungen). */
+function fixState(){
+  ['xp','answered','correct','bestCombo','gems'].forEach(k=>{if(typeof S[k]!=='number'||!(S[k]>=0))S[k]=0});
+  ['stars','mistakes','blitz','pc'].forEach(k=>{if(!S[k]||typeof S[k]!=='object'||Array.isArray(S[k]))S[k]={}}); // pc: richtige Antworten je Lernpaket
+  ['badges','days','seen','fullDays'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]}); // seen: angekündigte Freischaltungen, fullDays: Tage mit Tages-Truhe
+  if(typeof S.name!=='string')S.name='';
+}
+fixState();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const starKey=(m,w)=>m.id+'/'+w.id;
 const getStars=(m,w)=>S.stars[starKey(m,w)]||0;
@@ -350,7 +352,7 @@ function renderHome(){
   <div class="packs">${active.length?active.map(packCard).join(''):'<div class="empty">Gerade steht nichts an. 🎉</div>'}</div>
   ${done.length?`<div class="stitle">✅ Schon geschrieben</div><div class="packs">${done.map(packCard).join('')}</div>`:''}
   ${allBadgesHTML()}
-  <div class="footer"><button class="btn ghost" onclick="LernApp._toggleSound()">${S.sound?'🔊 Ton an':'🔇 Ton aus'}</button><button class="btn ghost" onclick="LernApp._resetAsk()">↺ Neu starten</button></div>`;
+  <div class="footer"><button class="btn ghost" onclick="LernApp._toggleSound()">${S.sound?'🔊 Ton an':'🔇 Ton aus'}</button><button class="btn ghost" onclick="LernApp._backupAsk()">💾 Sichern / Laden</button><button class="btn ghost" onclick="LernApp._resetAsk()">↺ Neu starten</button></div>`;
   scrollTo(0,0);
 }
 
@@ -508,6 +510,81 @@ function cheat(){
   modal(`<h2>📜 Spickzettel</h2>${m.worlds.filter(w=>w.rules).map(w=>`<div class="rule" style="--wc:${w.color}"><h4>${w.icon} ${esc(w.name)}</h4>${w.rules}</div>`).join('')}
   <button class="btn primary" style="width:100%" onclick="this.closest('.modal').remove()">Alles klar!</button>`,true);
 }
+/* ================= Sichern & Wiederherstellen (für Eltern) ================= */
+// Elternsperre: Rechenaufgabe, die ein Kind in Klasse 2–3 noch nicht im Kopf löst
+function parentGate(title,text,okLabel,onOk){
+  const a=12+Math.floor(Math.random()*8),b=3+Math.floor(Math.random()*7);
+  const m=modal(`<div style="text-align:center"><h2>${title}</h2><p style="margin-bottom:12px;font-size:18px">${text}</p>
+  <p style="margin-bottom:8px;font-size:16px">Nur für Eltern: Wie viel ist <b>${a} × ${b}</b>?</p>
+  <form class="wform" style="justify-content:center;margin-bottom:8px" onsubmit="return false"><input id="gsum" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Ergebnis"></form>
+  <div class="rbtns"><button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button><button class="btn primary" id="ggo">${okLabel}</button></div></div>`);
+  const inp=m.querySelector('#gsum'),go=()=>{
+    if(inp.value.trim()===String(a*b)){m.remove();return onOk()}
+    m.remove();modal(`<div style="text-align:center"><h2>Das stimmt leider nicht</h2><p style="margin-bottom:16px;font-size:18px">Dein Fortschritt bleibt, wie er ist. 🦉</p><div class="rbtns"><button class="btn primary" onclick="this.closest('.modal').remove()">OK</button></div></div>`);
+  };
+  m.querySelector('#ggo').onclick=go;
+  m.querySelector('form').onsubmit=e=>{e.preventDefault();go();return false};
+}
+const BACKUP_APP='lern-eule';
+/** Kurzbeschreibung eines Spielstands (auch für geladene Sicherungen) */
+function stateSummary(st){
+  const stars=Object.keys(st.stars||{}).reduce((a,k)=>a+(+st.stars[k]||0),0);
+  return `Level <b>${levelInfo(st.xp||0).lvl}</b> · ⭐ ${stars} Sterne · 🏅 ${(st.badges||[]).length} Abzeichen · ✅ ${st.correct||0} richtig${st.gems?' · 💎 '+st.gems:''}`;
+}
+function backupAsk(){
+  parentGate('💾 Sichern / Laden','Hier kannst du den Spielstand als Datei sichern oder eine Sicherung zurückholen.','Weiter',backupMenu);
+}
+function backupMenu(){
+  modal(`<div style="text-align:center"><h2>💾 Spielstand</h2>
+  <p style="font-size:16px;margin-bottom:6px">${S.name?esc(S.name)+': ':''}${stateSummary(S)}</p>
+  <p class="bnote">Die Sicherung ist eine kleine Datei. Leg sie z. B. in iCloud Drive, „Dateien“ oder schick sie dir per Mail/AirDrop.</p>
+  <div class="bmenu"><button class="btn primary" onclick="LernApp._backupSave(this)">💾 Spielstand sichern</button>
+  <button class="btn" onclick="LernApp._backupPick()">📂 Sicherung laden</button>
+  <button class="btn bclose" onclick="this.closest('.modal').remove()">Schließen</button></div>
+  <input type="file" id="bfile" accept=".json,application/json" style="display:none" onchange="LernApp._backupLoad(this)"></div>`,true);
+}
+function backupSave(btn){
+  const d=dkey(today0()),name='lern-eule-'+(S.name?S.name.replace(/[^A-Za-z0-9ÄÖÜäöüß-]/g,'')+'-':'')+d+'.json';
+  const data=JSON.stringify({app:BACKUP_APP,v:1,saved:new Date().toISOString(),state:S},null,1);
+  const done=()=>{S.lastBackup=d;save();const p=btn&&btn.closest('.bmenu');if(p&&!document.querySelector('.bok'))p.insertAdjacentHTML('beforebegin','<p class="bok">✅ Gesichert!</p>')};
+  const download=()=>{
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=name;
+    document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);done();
+  };
+  // iPhone/iPad: Teilen-Menü (Dateien, AirDrop, Mail). Sonst normaler Download.
+  try{
+    const f=new File([data],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      navigator.share({files:[f],title:'Lern-Eule Sicherung'}).then(done).catch(e=>{if(!e||e.name!=='AbortError')download()});
+      return;
+    }
+  }catch(e){}
+  download();
+}
+function backupLoad(inp){
+  const f=inp.files&&inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    let b=null;try{b=JSON.parse(r.result)}catch(e){}
+    inp.value='';
+    if(!b||b.app!==BACKUP_APP||!b.state||typeof b.state!=='object'||typeof b.state.xp!=='number'){
+      toast('⚠️','Das ist keine Lern-Eule-Sicherung.');return;
+    }
+    const when=b.saved?new Date(b.saved).toLocaleDateString('de-DE',{day:'numeric',month:'numeric',year:'numeric'}):'?';
+    const m=modal(`<div style="text-align:center"><h2>📂 Sicherung laden?</h2>
+      <p style="font-size:16px;margin-bottom:10px"><b>Sicherung vom ${when}</b>${b.state.name?' ('+esc(b.state.name)+')':''}<br>${stateSummary(b.state)}</p>
+      <p style="font-size:16px">Der jetzige Spielstand wird ersetzt:<br>${stateSummary(S)}</p>
+      <div class="rbtns"><button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button><button class="btn primary" id="bgo">Ja, laden</button></div></div>`);
+    m.querySelector('#bgo').onclick=()=>{
+      S=Object.assign(FRESH(),b.state);fixState();save();
+      document.querySelectorAll('.modal').forEach(x=>x.remove());route();
+      toast('📂','Sicherung geladen!');sfx('win');
+    };
+  };
+  r.onerror=()=>toast('⚠️','Die Datei konnte nicht gelesen werden.');
+  r.readAsText(f);
+}
+
 function resetAsk(){
   // Elternsperre: Rechenaufgabe, die ein Kind in Klasse 2–3 noch nicht im Kopf löst
   const a=12+Math.floor(Math.random()*8),b=3+Math.floor(Math.random()*7);
@@ -818,6 +895,8 @@ document.addEventListener('touchmove',e=>{if(e.touches.length>1||(e.scale&&e.sca
 /* ================= Public API ================= */
 Object.assign(LernApp,{
   go,start,
+  _backupAsk:backupAsk,_backupSave:backupSave,_backupLoad:backupLoad,
+  _backupPick(){const i=$('#bfile');if(i)i.click()},
   _answer:answer,_submit:submit,_tap:tap,_spotCheck:spotCheck,_say:say,_next:next,_cheat:cheat,_resetAsk:resetAsk,
   _quit(){stopTimer();Q=null;route()},
   _locked(msg){toast('🔒',msg||'Noch gesperrt!')},
@@ -833,6 +912,8 @@ function boot(){
   // Spielstände von vor der Tages-Serie: es wurde heute schon geübt (App ging erst heute online).
   if(!Array.isArray(SAVED.days)&&S.answered>0&&S.days.length===0){S.days=[dkey(today0())];save()}
   route();
+  // Speicher als dauerhaft markieren, damit der Browser den Spielstand nicht von selbst wegräumt
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}catch(e){}
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
     const sw=navigator.serviceWorker,hadCtrl=!!sw.controller;
     // Neuer Service Worker hat übernommen (skipWaiting + claim in sw.js) → neue Inhalte laden.
