@@ -194,6 +194,9 @@ input{-webkit-user-select:text;user-select:text}
 .goldq .qcard{border-top-color:#eab308;box-shadow:0 10px 0 rgba(0,0,0,.2),0 0 30px rgba(250,204,21,.6)}
 .awake{margin-top:12px;color:#dc2626;font-weight:600}
 .awake.gold{color:#b45309}
+.awake.fresh{color:#16a34a}
+.nextw{display:block;margin-top:10px;color:var(--muted);font-size:16px}
+.bananas{font-size:22px;line-height:1.2;margin:8px 0}
 .challenge{margin-top:8px;font-weight:600;color:#1d4ed8!important}
 
 /* Tages-Serie */
@@ -297,3 +300,13 @@ details.older .packs{margin-top:8px}
 .bsub{font-size:15px;margin:14px 0 8px;display:flex;align-items:center;gap:6px}
 .bsub:first-of-type{margin-top:4px}
 .bsub small{font-weight:600;color:var(--muted)}
+/* Tages-Truhe */
+.daily{margin-bottom:16px}
+.daily h3{display:flex;justify-content:space-between;align-items:center}
+.dstreak{background:linear-gradient(180deg,#fed7aa,#fdba74);border-radius:999px;padding:2px 12px;font-size:15px}
+.dgoals{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.dgoal{flex:1;display:flex;align-items:center;gap:8px;border:0;border-radius:16px;padding:10px 12px;background:#f3f4f6;font:inherit;font-weight:600;font-size:16px;cursor:pointer;color:inherit;text-align:left}
+.dgoal span{font-size:24px}
+.dgoal.did{background:#dcfce7;color:#166534}
+.dchest{font-size:40px;animation:bob 1.6s ease-in-out infinite}
+.dchest.open{animation:none}

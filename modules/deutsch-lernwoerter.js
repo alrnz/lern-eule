@@ -120,7 +120,7 @@ function build(week){
     subject:'Lernwörter', title:'Lernwörter vom '+label,
     subtitle:ws.slice(0,4).join(', ')+(n>4?' …':''),
     date:week.test, testName:'Diktat',
-    icon:'✏️', color:'#16a34a', questionsPerWorld:n, examCount:n,
+    icon:'✏️', color:'#16a34a', daily:true, dailyName:'Lernwörter', questionsPerWorld:n, examCount:n,
     closed:week.closed, unlock:week.unlock,
     hello:(week.closed&&week.closed.length)||later(week)?`Deine ${n} Lernwörter! Hör gut zu und schreib sie auf. Weitere Spiele kommen bald. ✍️`
       :`Deine ${n} Lernwörter! Spiel die Welten und schreib zum Schluss den Probetest – wie ein echtes Diktat. ✍️`,

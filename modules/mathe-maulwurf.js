@@ -456,7 +456,7 @@ LernApp.register({
      write:()=>MAUER.map(x=>()=>num(qMauer(x))).concat(FOLGE.map(x=>()=>num(qFolge(x))))}
   ],
   // Zum Start nur zwei Welten, dann alle zwei Tage eine neue (nach dem Grammatiktest am 20.11.)
-  unlock:{einmaleins:'2026-11-21',schriftlich:'2026-11-23',groessen:'2026-11-25',knobel:'2026-11-27'},
+  unlock:{chest:'2026-11-19',blitz:'2026-11-20',exam:'2026-11-22',gold:'2026-11-28',einmaleins:'2026-11-21',schriftlich:'2026-11-23',groessen:'2026-11-25',knobel:'2026-11-27'},
   boss:{name:'Der große Dachs',goldName:'Der goldene Dachs',icon:'🦡',color:'#44403c',color2:'#a8a29e',count:15,lives:3},
   // Eigene Abzeichen. test(c) siehe CLAUDE.md.
   badges:[

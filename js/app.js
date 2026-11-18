@@ -57,6 +57,7 @@ if(!Array.isArray(S.days))S.days=[];
 if(typeof S.gems!=='number')S.gems=0;
 if(!Array.isArray(S.seen))S.seen=[]; // schon angekündigte Freischaltungen
 if(!S.pc||typeof S.pc!=='object')S.pc={}; // richtige Antworten je Lernpaket
+if(!Array.isArray(S.fullDays))S.fullDays=[]; // Tage mit geöffneter Tages-Truhe
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const starKey=(m,w)=>m.id+'/'+w.id;
 const getStars=(m,w)=>S.stars[starKey(m,w)]||0;
@@ -93,8 +94,13 @@ const LOCAL=/^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)&&!/[?&]
 /* m.closed=['id',…]: vorerst gesperrt, noch ohne Datum. Später aus closed nehmen und unlock[id] setzen (dann mit Ankündigung). */
 const isClosed=(m,id)=>!!(m.closed&&m.closed.indexOf(id)>=0);
 const isOpen=(m,id)=>{const d=openDate(m,id);return LOCAL||(!isClosed(m,id)&&(!d||daysUntil(d)<=0))};
-/** Welten können per m.unlock[welt-id] auch erst ab einem Datum offen sein. */
-const openWorlds=m=>m.worlds.filter(w=>isOpen(m,w.id));
+/* Freischalten nach Fortschritt: w.after='welt-id' → erst offen ab w.afterStars (Standard 2) Sternen in jener Welt.
+ * Lokal ist auch das offen (mit ?live wie online). */
+const needOf=w=>w.afterStars||2;
+const isReady=(m,w)=>LOCAL||!w.after||(S.stars[m.id+'/'+w.after]||0)>=needOf(w);
+function afterMsg(m,w){const p=allWorlds(m).find(x=>x.id===w.after);return `Hol dir erst ${needOf(w)} Sterne in „${p?p.name:w.after}“, dann geht es hier weiter!`}
+/** Welten können per m.unlock[welt-id] auch erst ab einem Datum offen sein, per w.after erst nach Fortschritt. */
+const openWorlds=m=>m.worlds.filter(w=>isOpen(m,w.id)&&isReady(m,w));
 function whenText(d){
   const n=daysUntil(d);
   if(n===1)return 'morgen';if(n===2)return 'übermorgen';
@@ -133,7 +139,12 @@ const BADGES=[
  {id:'q50',icon:'📚',name:'Fleißig',desc:'50 Fragen beantwortet'},
  {id:'q150',icon:'🧠',name:'Superhirn',desc:'150 Fragen beantwortet'},
  {id:'q500',icon:'🚀',name:'Lern-Rakete',desc:'500 Fragen beantwortet'},
- {id:'packs3',icon:'🎒',name:'Vielseitig',desc:'3 Lernpakete geschafft'}
+ {id:'packs3',icon:'🎒',name:'Vielseitig',desc:'3 Lernpakete geschafft'},
+ {id:'truhe1',icon:'🎁',name:'Erste Tages-Truhe',desc:'Alle Tagesaufgaben an einem Tag'},
+ {id:'streak3',icon:'🔥',name:'Drei am Stück',desc:'3 Tage am Stück alle Tagesaufgaben'},
+ {id:'streak5',icon:'📅',name:'Ganze Schulwoche',desc:'5 Tage am Stück alle Tagesaufgaben'},
+ {id:'streak10',icon:'🏅',name:'Dauerbrenner',desc:'10 Tage am Stück alle Tagesaufgaben'},
+ {id:'streak20',icon:'👑',name:'Übungs-König',desc:'20 Tage am Stück alle Tagesaufgaben'}
 ];
 /* Eigene Abzeichen eines Lernpakets (m.badges): gespeichert als "<paket-id>:<abzeichen-id>". */
 // Mehrere Lernpakete können sich Abzeichen teilen (m.badgeGroup, z. B. alle Lernwörter-Wochen).
@@ -298,13 +309,16 @@ function weekChip(m){
   if(lw[1]===m)return '<span class="datechip soon">Letzte Woche</span>';
   return `<span class="datechip past">${d>0?'ab':'vom'} ${parseDate(m.from).toLocaleDateString('de-DE',{day:'numeric',month:'numeric'})}</span>`;
 }
-function lwSection(){
-  const lw=LernApp.modules.filter(m=>isLW(m)&&(LOCAL||!m.from||daysUntil(m.from)<=0)).sort((a,b)=>(a.from||'')<(b.from||'')?1:-1);
-  if(!lw.length)return '';
-  const now=lw.slice(0,2),old=lw.slice(2);
-  return `<div class="stitle">✏️ Lernwörter</div><div class="packs">${now.map(packCard).join('')}</div>
+/* Bereich „Jeden Tag üben“: Tages-Truhe, dann aktuelle Lernwörter, die anderen daily-Pakete, letzte Woche; ältere eingeklappt. */
+function dailySection(){
+  const lw=LernApp.modules.filter(m=>isLW(m)&&visibleLW(m)).sort((a,b)=>(a.from||'')<(b.from||'')?1:-1);
+  const reg=LernApp.modules.filter(m=>m.daily&&!isLW(m));
+  if(!lw.length&&!reg.length)return '';
+  const list=lw.slice(0,1).concat(reg,lw.slice(1,2)),old=lw.slice(2);
+  return `<div class="stitle">🗓️ Jeden Tag üben</div>${dailyPanel()}<div class="packs">${list.map(packCard).join('')}</div>
   ${old.length?`<details class="older"><summary>Ältere Lernwörter (${old.length})</summary><div class="packs">${old.map(packCard).join('')}</div></details>`:''}`;
 }
+const isDaily=m=>isLW(m)||!!m.daily;
 function sortPacks(list){
   return list.slice().sort((a,b)=>{const da=daysUntil(a.date),db=daysUntil(b.date);
     if(da===null&&db===null)return 0;if(da===null)return 1;if(db===null)return -1;return da-db});
@@ -322,8 +336,8 @@ function allBadgesHTML(){
   return `<div class="section"><h3>🏅 Alle Abzeichen (${gotN(all)}/${all.length})</h3>${groups.map(g=>`<h4 class="bsub">${g.title} <small>${gotN(g.list)}/${g.list.length}</small></h4>${bgrid(g.list)}`).join('')}</div>`;
 }
 function renderHome(){
-  const active=sortPacks(LernApp.modules.filter(m=>!isDone(m)&&!isLW(m)));
-  const done=sortPacks(LernApp.modules.filter(m=>isDone(m)&&!isLW(m))).reverse();
+  const active=sortPacks(LernApp.modules.filter(m=>!isDone(m)&&!isDaily(m)));
+  const done=sortPacks(LernApp.modules.filter(m=>isDone(m)&&!isDaily(m))).reverse();
   const next=active.find(m=>daysUntil(m.date)!==null);
   const greet=next?`${countdownText(next)} <br><small>(${esc(next.title)} · ${fmtDate(next.date)})</small>`:'Wähle ein Lernpaket und sammle Sterne!';
   app.innerHTML=`
@@ -331,9 +345,9 @@ function renderHome(){
   <div class="hero"><div class="mascot">🦉</div><div class="bubble">Hallo ${S.name?`<b>${esc(S.name)}</b>`:'Lern-Held'}! ${greet}</div></div>
   <div class="namebar">Ich heiße <input value="${esc(S.name)}" placeholder="Dein Name" maxlength="16" onchange="LernApp._setName(this.value)"></div>
   ${statsHTML()}
+  ${dailySection()}
   <div class="stitle">📚 Lernpakete</div>
   <div class="packs">${active.length?active.map(packCard).join(''):'<div class="empty">Gerade steht nichts an. 🎉</div>'}</div>
-  ${lwSection()}
   ${done.length?`<div class="stitle">✅ Schon geschrieben</div><div class="packs">${done.map(packCard).join('')}</div>`:''}
   ${allBadgesHTML()}
   <div class="footer"><button class="btn ghost" onclick="LernApp._toggleSound()">${S.sound?'🔊 Ton an':'🔇 Ton aus'}</button><button class="btn ghost" onclick="LernApp._resetAsk()">↺ Neu starten</button></div>`;
@@ -370,6 +384,68 @@ function markDay(m){
   }
 }
 
+/* ================= Jeden Tag üben (m.daily) ================= */
+/* Lernpakete mit daily:true (Lernwörter, Affen-Box) sind Tagesaufgaben, eine je Gruppe (bkey: alle Lernwörter-Wochen
+ * zusammen). Eine Runde mit mindestens einer richtigen Antwort hakt die Aufgabe für heute ab (+DAILY_XP).
+ * Alle abgehakt → Tages-Truhe mit Bonus. Serie = Tage mit Truhe am Stück; Samstag/Sonntag unterbrechen sie nicht. */
+const DAILY_XP=20;
+const visibleLW=m=>LOCAL||!m.from||daysUntil(m.from)<=0;
+function dailyGoals(){
+  const out=[],seen={};
+  LernApp.modules.filter(m=>m.daily&&visibleLW(m)).sort((a,b)=>(a.from||'')<(b.from||'')?1:-1).forEach(m=>{
+    const k=bkey(m);if(seen[k])return;seen[k]=1;out.push({key:k,m,name:m.dailyName||m.title,icon:m.icon||'📘'})}); // Lernwörter: neueste Woche
+  return out;
+}
+function todayRec(){const d=dkey(today0());if(!S.dd||S.dd.d!==d)S.dd={d,done:[]};return S.dd}
+const isDoneToday=k=>todayRec().done.indexOf(k)>=0;
+function dailyStreak(){
+  const has=d=>S.fullDays.indexOf(dkey(d))>=0;
+  let d=today0(),n=0;if(!has(d))d=addDays(d,-1); // heute noch offen: Serie von gestern zählt weiter
+  for(let i=0;i<500;i++){if(has(d))n++;else if(d.getDay()%6!==0)break;d=addDays(d,-1)}
+  return n;
+}
+function dailyDone(m,ok){
+  if(!m.daily||!ok)return;
+  const k=bkey(m),t=todayRec();if(t.done.indexOf(k)>=0)return;
+  const lvBefore=level();t.done.push(k);S.xp+=DAILY_XP;
+  const g=dailyGoals(),full=g.every(x=>t.done.indexOf(x.key)>=0)&&S.fullDays.indexOf(t.d)<0;
+  if(full){
+    S.fullDays.push(t.d);
+    const st=dailyStreak(),bonus=30+Math.min(st,10)*5;S.xp+=bonus;
+    if(level()>lvBefore){const l=level();setTimeout(()=>{toast('⬆️',`Level ${l}: ${titleOf(l)}!`);sfx('level')},3200)}
+    grant('truhe1');if(st>=3)grant('streak3');if(st>=5)grant('streak5');if(st>=10)grant('streak10');if(st>=20)grant('streak20');
+    setTimeout(()=>{
+      modal(`<div style="text-align:center"><div style="font-size:80px;animation:bob 1.6s ease-in-out infinite">🎁</div><h2>Tages-Truhe geöffnet!</h2>
+      <p style="font-size:18px">Alle Tagesaufgaben für heute geschafft. Super!</p>
+      <div class="rstats"><div>+${bonus+DAILY_XP} XP<small>Belohnung</small></div><div>🔥 ${st}<small>${st===1?'Tag':'Tage'} am Stück</small></div></div>
+      <p class="mini" style="display:block;margin-bottom:12px">Morgen wartet die nächste Truhe – je länger deine Serie, desto mehr XP!</p>
+      <button class="btn primary" style="width:100%" onclick="this.closest('.modal').remove()">Juhu! 🎉</button></div>`);
+      sfx('win');bigConfetti();
+    },1200);
+  }else{
+    const left=g.filter(x=>t.done.indexOf(x.key)<0);
+    if(level()>lvBefore){const l=level();setTimeout(()=>{toast('⬆️',`Level ${l}: ${titleOf(l)}!`);sfx('level')},3200)}
+    setTimeout(()=>{toast(m.icon||'✅',`Tagesaufgabe geschafft! +${DAILY_XP} XP${left.length?' · Noch: '+left.map(x=>esc(x.name)).join(', '):''}`);sfx('gem')},1200);
+  }
+  save();
+}
+function dailyPanel(){
+  const g=dailyGoals();if(!g.length)return '';
+  const t=todayRec(),st=dailyStreak(),left=g.filter(x=>!isDoneToday(x.key)),full=!left.length;
+  const now=today0(),mon=addDays(now,-((now.getDay()+6)%7));let days='';
+  for(let i=0;i<7;i++){
+    const d=addDays(mon,i),did=S.fullDays.indexOf(dkey(d))>=0,isToday=+d===+now,we=i>=5;
+    if(we&&!did&&!isToday)continue;
+    const cls=did?'did':isToday?'today':d<now?'miss':'future';
+    days+=`<div class="day ${cls}"><small>${isToday?'Heute':WD[d.getDay()]}</small><span>${did?'🎁':isToday?'⭐':'·'}</span></div>`;
+  }
+  const msg=full?'Alles geschafft! Morgen wartet die nächste Truhe. 🌙'
+    :`Noch ${left.length===1?'eine Runde':left.length+' Runden'}, dann öffnet sich die Truhe! 🎁`;
+  return `<div class="section daily"><h3>🎁 Tages-Truhe <span class="dstreak">${st?`🔥 ${st} ${st===1?'Tag':'Tage'}`:'🔥 Serie starten!'}</span></h3>
+    <div class="dgoals">${g.map(x=>{const d=isDoneToday(x.key);return `<button class="dgoal ${d?'did':''}" onclick="LernApp.go('${x.m.id}')"><span>${d?'✅':x.icon}</span>${esc(x.name)}</button>`}).join('')}<div class="dchest ${full?'open':''}">${full?'🎉':'🎁'}</div></div>
+    <div class="days">${days}</div><div class="dmsg">${msg}</div></div>`;
+}
+
 /* ================= Lernpaket ================= */
 function worldCard(m,w,i,locked,lockMsg){
   const st=getStars(m,w),hasStars=w.kind!=='chest'&&w.kind!=='blitz';
@@ -401,11 +477,12 @@ function announceUnlocks(m){
   },500);
 }
 function renderPack(m){
+  // Ein schon besiegter Endgegner bleibt offen, auch wenn später eine neue Welt dazukommt.
   const allDone=m.worlds.every(w=>getStars(m,w)>0);
   const bossDone=m.boss&&getStars(m,bossW(m))>0;
   const hasRules=m.worlds.some(w=>w.rules);
   const special=[];
-  const sp=(w,i,locked,msg)=>special.push(isOpen(m,w.id)?worldCard(m,w,i,locked,msg):mysteryCard(m,w,i));
+  const sp=(w,i,locked,msg)=>special.push(isOpen(m,w.id)?worldCard(m,w,i,locked||!isReady(m,w),isReady(m,w)?msg:afterMsg(m,w)):mysteryCard(m,w,i));
   sp(chestW(),0,false);
   sp(blitzW(),1,false);
   if(m.boss)sp(goldW(m),2,!bossDone,'Besiege zuerst '+bossW(m).name+'!');
@@ -416,9 +493,9 @@ function renderPack(m){
     <h1>${m.icon||''} ${esc(m.title)}<small>${esc(m.subject||'')}${m.date?' · '+fmtDate(m.date):''}</small></h1></div>
   <div class="hero"><div class="mascot">${m.mascot||'🦉'}</div><div class="bubble">${countdownText(m)}</div></div>
   ${statsHTML()}
-  ${dayStrip(m)}
+  ${m.daily?dailyPanel():dayStrip(m)}
   <div class="stitle">🗺️ Welten</div>
-  <div class="worlds">${m.worlds.map((w,i)=>isOpen(m,w.id)?worldCard(m,w,i,false):mysteryCard(m,w,i)).join('')}${m.boss?(m.worlds.some(w=>!isOpen(m,w.id)&&isClosed(m,w.id))?mysteryCard(m,bossW(m),m.worlds.length):worldCard(m,bossW(m),m.worlds.length,!allDone,'Schaffe zuerst alle Welten!')):''}</div>
+  <div class="worlds">${m.worlds.map((w,i)=>isOpen(m,w.id)?worldCard(m,w,i,!isReady(m,w),isReady(m,w)?'':afterMsg(m,w)):mysteryCard(m,w,i)).join('')}${m.boss?(m.worlds.some(w=>!isOpen(m,w.id)&&isClosed(m,w.id))?mysteryCard(m,bossW(m),m.worlds.length):worldCard(m,bossW(m),m.worlds.length,!allDone&&!bossDone,'Schaffe zuerst alle Welten!')):''}</div>
   <div class="stitle">🎯 Spezial-Missionen</div>
   <div class="worlds">${special.join('')}</div>
   ${packBadgesHTML(m)}
@@ -457,7 +534,7 @@ function mix(cats,n){
 }
 const allChoice=m=>openWorlds(m).filter(x=>!x.noMix).map(x=>flat(pool(x))); // noMix: Schreib-Spiele nicht in Endgegner/Blitz
 function start(wid){
-  const m=CUR;const w=findWorld(m,wid);if(!w||!isOpen(m,wid))return;
+  const m=CUR;const w=findWorld(m,wid);if(!w||!isOpen(m,wid)||!isReady(m,w))return;
   stopTimer();
   const kind=w.kind||'world';let qs;
   if(kind==='blitz'){if(!blitzLeft())return LernApp._locked(BLITZ_DONE);useBlitz()}
@@ -650,7 +727,7 @@ function starsRow(stars){return `<div class="stars">${[1,2,3].map(n=>`<span clas
 function finish(lost){
   stopTimer();
   const m=Q.m,w=Q.w,kind=Q.kind;
-  markDay(m);
+  markDay(m);dailyDone(m,Q.ok>0);
   /* ---- Blitzrunde ---- */
   if(kind==='blitz'){
     const old=S.blitz[m.id]||0,rec=Q.score>old;if(rec)S.blitz[m.id]=Q.score;
@@ -676,6 +753,7 @@ function finish(lost){
     Q=null;scrollTo(0,0);return;
   }
   /* ---- Welten, Endgegner, Probetest ---- */
+  const readyBefore=allWorlds(m).filter(x=>x.after&&isReady(m,x)).map(x=>x.id);
   let stars;
   if(kind==='boss')stars=lost?0:Math.max(1,Math.round(Q.hearts/Q.lives*3));
   else if(kind==='exam'){const p=Q.ok/Q.total;stars=p>=.9?3:p>=.75?2:1}
@@ -701,7 +779,11 @@ function finish(lost){
   const bossNow=kind==='world'&&m.boss&&m.worlds.every(x=>getStars(m,x)>0)&&!S.stars[m.id+'/boss'];
   const goldNow=kind==='boss'&&!w.gold&&!lost&&!S.stars[m.id+'/gold']&&isOpen(m,'gold');
   const bw=m.boss?bossW(m):null;
+  // Durch diese Runde neu freigeschaltet (w.after) – oder: was mit mehr Sternen aufgehen würde
+  const fresh=allWorlds(m).filter(x=>x.after&&isOpen(m,x.id)&&isReady(m,x)&&readyBefore.indexOf(x.id)<0);
+  const nextW=allWorlds(m).find(x=>x.after===w.id&&isOpen(m,x.id)&&!isReady(m,x));
   let primary=[w.id,'🔁 Nochmal'];
+  if(fresh.length)primary=[fresh[0].id,fresh[0].icon+' Weiter: '+esc(fresh[0].name)];
   if(bossNow)primary=['boss',bw.icon+' Zum Endgegner'];
   else if(goldNow)primary=['gold','🐲 Zum goldenen Gegner'];
   else if(lost&&chestCount(m)&&isOpen(m,'chest'))primary=['chest','💎 Zur Schatzkiste'];
@@ -712,6 +794,8 @@ function finish(lost){
     <div class="rstats"><div>${firstTry} / ${Q.total}<small>${kind==='exam'?'richtig':'beim 1. Versuch richtig'}</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div><div>🔥 ${Q.maxStreak}<small>beste Serie</small></div></div>
     ${wrongs}${badgesNew()}
     ${bossNow?`<p class="awake">${bw.icon} ${esc(bw.name)} ist erwacht! Traust du dich?</p>`:''}
+    ${fresh.length?`<p class="awake fresh">🎁 Neu freigeschaltet: ${fresh.map(x=>x.icon+' '+esc(x.name)).join(', ')}!</p>`:''}
+    ${nextW&&!lost?`<p class="mini nextw">🔒 Mit ${needOf(nextW)} Sternen öffnet sich ${nextW.icon} ${esc(nextW.name)}.</p>`:''}
     ${goldNow?`<p class="awake gold">🐲 Ein goldener Drache ist aufgetaucht … nur 1 Leben!</p>`:''}
     ${resultBtns(m,primary[0],primary[1])}</div>`;
   [1,2,3].forEach(n=>{if(n<=stars)setTimeout(()=>{sfx('good');const s=document.querySelectorAll('.star')[n-1];if(s){const r=s.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,25,.9)}},500+n*300)});

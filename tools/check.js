@@ -41,6 +41,7 @@ ctx.LernApp.modules.forEach(m=>{
   all.forEach(w=>{
     if(RESERVED.indexOf(w.id)>=0)err(m,w,`"${w.id}" ist als Welt-ID reserviert`);
     if(w.id.indexOf(':')>=0)err(m,w,'Welt-ID darf kein ":" enthalten');
+    if(w.after&&(ids.indexOf(w.after)<0||w.after===w.id))err(m,w,'after: unbekannte Welt '+w.after);
     const cats=w.cats();
     if(!cats.length||cats.some(c=>!c.length))err(m,w,'leere Kategorie');
     const check=(f,write)=>{

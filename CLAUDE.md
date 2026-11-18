@@ -48,7 +48,8 @@ LernApp.register({
     cats:()=>[ [ ()=>({...frage}) , ... ], [ ... ] ],
     // optional: Schreib-Fragen (input:true) für den Probetest. Reihenfolge nie ändern, nur hinten anhängen
     // (die Schatzkiste merkt sich Fragen über ihre Position, z. B. "nomen:w:5" oder "nomen:c0:5").
-    write:()=>[ ()=>({input:true,...frage}), ... ]
+    write:()=>[ ()=>({input:true,...frage}), ... ],
+    after:'reihe5', afterStars:2   // optional: erst offen ab 2 Sternen in Welt „reihe5“ (Freischalten nach Fortschritt; lokal offen, außer ?live)
   }],
   boss:{name:'Zahlen-Drache', icon:'🐉', count:15, lives:3},  // optional, mischt alle Welten (goldName: eigener Name für den goldenen Endgegner)
   // optional: Zusatz-Missionen (wie Welten mit Sternen und Schatzkiste, aber nicht im Endgegner/Blitz und
@@ -104,13 +105,26 @@ Themen nach „Denken und Rechnen 3 – Forderheft“, Westermann). Dateiname da
 mit festem Startwert erzeugt (`gen(seed,n,…)`), damit die Schatzkiste sie wiederfindet: neue Listen nur hinten anfügen,
 bestehende seeds und Anzahlen nicht ändern.
 
+### Jeden Tag üben (`daily:true`)
+Lernpakete mit `daily:true` (optional `dailyName`) sind Tagesaufgaben: Lernwörter (alle Wochen zusammen, über `badgeGroup`)
+und die Affen-Box. Sie stehen auf der Startseite oben im Bereich „🗓️ Jeden Tag üben“ statt unter „Lernpakete“.
+Eine beendete Runde mit mindestens einer richtigen Antwort hakt die Tagesaufgabe ab (+20 XP). Sind alle abgehakt,
+öffnet sich die Tages-Truhe: +30 XP plus 5 XP je Serientag (bis 10). Serie = Tage mit Truhe am Stück; Sa/So unterbrechen
+sie nicht. Abzeichen: truhe1, streak3/5/10/20. Gespeichert in `S.dd` (heute) und `S.fullDays`.
+
+### Affen-Box (`modules/mathe-box.js`)
+Einmaleins nach der Karteikarten-Idee von Ina („Hallo Lernen“): leicht anfangen, in Minischritten steigern.
+Affe Kiki klettert Ast für Ast: 10er → 2er → 5er → 4er → 3er → 6er → 9er → 8er → 7er, oben die Mix-Box
+(36 Karten 2·2 … 9·9 ohne Tauschaufgaben). Jeder Ast öffnet sich erst mit 2 Sternen im Ast davor (`after`).
+Ab Ast 2 kommen Wiederholungskarten aus den schon geschafften Reihen dazu. `REIHEN` nie umsortieren (Schatzkiste).
+
 ### Lernwörter (`modules/deutsch-lernwoerter.js`)
 Jede Woche ~10 Lernwörter aus der Schule. Neue Woche = Eintrag **oben** in `WOCHEN` (`from` = Montag der Woche,
 optional `test` = Diktat-Datum). Daraus wird automatisch ein eigenes Lernpaket `lernwoerter-<from>` mit den Spielen
 Hör-Diktat, Blitzblick (beide `noMix`: nicht im Endgegner/Blitz), Richtig geschrieben?, Lücken-Wörter, Fehler-Finder,
 Endgegner und Probetest (= ganzes Diktat). Falsche Schreibweisen und Erklärungen erzeugen die `RULES` in der Datei;
-eigene Tipps/Vorlese-Texte per `['Wort','Tipp','Vorlese-Text']`. Startseite: Bereich „✏️ Lernwörter“ mit aktueller und
-letzter Woche, ältere eingeklappt. Wörter einer Woche nie umsortieren (Schatzkiste).
+eigene Tipps/Vorlese-Texte per `['Wort','Tipp','Vorlese-Text']`. Startseite: im Bereich „🗓️ Jeden Tag üben“ aktuelle und
+letzte Woche, ältere eingeklappt. Wörter einer Woche nie umsortieren (Schatzkiste).
 Spiele vorerst sperren: `closed:['blick',…]` in der Woche (ohne Datum, Karte „Geheime Welt – bald“). Später freischalten:
 aus `closed` nehmen und `unlock:{blick:'JJJJ-MM-TT'}` setzen, dann kommt die Ankündigung. `closed` geht in jedem Lernpaket.
 
