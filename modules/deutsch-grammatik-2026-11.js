@@ -253,6 +253,99 @@ function wZeichen(x){
   return {input:true,task:'Welches Satzzeichen fehlt? Tippe es ein!',prompt:q.prompt,answer:q.answer,explain:q.explain};
 }
 
+/* ---------- Fehler-Detektiv: Sätze mit eingebauten Fehlern ----------
+ * {richtig|falsch~Hinweis|falsch2~Hinweis} ist ein Wort, das falsch sein kann. Pro Frage werden 1–2 davon falsch gezeigt.
+ * Hinweis-Kürzel: V <Verlängerung> · G <Verlängerung> (Endung -ig) · A (Adjektiv klein) · N (Nomen groß) · K (Vergleichsstufe)
+ *                 S (Höchststufe) · W (als/wie) · P (Satzzeichen) · X <freier Text>
+ * Nur hinten anhängen (die Schatzkiste merkt sich die Position).
+ */
+const SPOT=[
+ 'Der {Hund|Hunt~V die Hunde} ist schneller {als|wie~W} die Katze.',
+ 'Im {Wald|Walt~V die Wälder} ist es ganz {ruhig|ruhich~G ruhige|Ruhig~A}.',
+ 'Wo ist mein {Korb|Korp~V die Körbe} {?|.~P}',
+ 'Der Elefant ist {größer|großer~K} als die {Maus|maus~N}.',
+ 'Mein {Freund|Freunt~V die Freunde} ist sehr {lustig|lustich~G lustige|Lustig~A}.',
+ 'Räum bitte dein {Zimmer|zimmer~N} auf {!|?~P}',
+ 'Von allen Tieren ist die {Giraffe|giraffe~N} {am größten|am größesten~S|am großten~S}.',
+ 'Der {Zug|Zuk~V die Züge} fährt {am schnellsten|am schnellesten~S}.',
+ 'Heute ist es {windig|windich~G windige|windlich~X Aus <b>der Wind</b> wird wind<b>ig</b>.} und {kalt|kald~V kalte Füße}.',
+ 'Hast du das {Geld|Gelt~V die Gelder} {?|.~P}',
+ 'Das {Kind|Kint~V die Kinder} malt ein {Bild|Bilt~V die Bilder}.',
+ 'Im {Herbst|herbst~N} ist es oft {stürmisch|stürmich~X Endung <b>-isch</b>: stürm<b>isch</b>|stürmig~X Aus <b>der Sturm</b> wird stürm<b>isch</b>.}.',
+ 'Sie {sagt|sakt~V sagen}, der {Berg|Berk~V die Berge} ist hoch.',
+ 'Ein Löwe ist {stärker|starker~K} {als|wie~W} ein {Hund|Hunt~V die Hunde}.',
+ 'Ich bin so groß {wie|als~X Gleich groß → <b>so groß wie</b>.} mein {Bruder|bruder~N}.',
+ 'Er {gibt|gipt~V geben} mir ein {Geschenk|Gescheng~V die Geschenke}.',
+ 'Der {Weg|Wek~V die Wege} zum {Zelt|Zeld~V die Zelte} ist {lang|lank~V lange Wege}.',
+ 'Wie heißt dein {Pferd|Pfert~V die Pferde} {?|!~P}',
+ 'Pizza esse ich {lieber|gerner~X Ausnahme: gern → <b>lieber</b> → am liebsten} als {Spinat|spinat~N}.',
+ 'Die {Bank|Bang~V die Bänke} im {Park|Parg~V die Parks} ist {gelb|gelp~V gelbe Blumen}.',
+ 'Am Freitag schreiben wir einen {Test|test~N} {.|?~P}',
+ 'Der Turm ist {höher|hocher~X Ausnahme: hoch → <b>höher</b> → am höchsten} als das {Haus|haus~N}.',
+ 'Opa ist {älter|alter~K} als Papa, aber Uroma ist {am ältesten|am altesten~S}.',
+ 'Das ist ein {freundlicher|freundiger~X Aus <b>der Freund</b> wird freund<b>lich</b>.|Freundlicher~A} {Hund|Hunt~V die Hunde}.',
+ 'Der {Dieb|Diep~V die Diebe} schleicht ganz {leise|Leise~A} {.|?~P}',
+ 'Wann beginnt die {Pause|pause~N} {?|.~P}',
+ 'Mein {Rad|Rat~V die Räder} ist {schneller|schnella~K} als deins.',
+ 'Der {Zwerg|Zwerk~V die Zwerge} ist {klug|kluk~V kluge Kinder} und {mutig|mutich~G mutige|Mutig~A}.'
+];
+function spotHint(code,right){
+  const c=code.charAt(0),t=code.slice(1).trim();
+  if(c==='V')return `🔍 Verlängern: <b>${t}</b>. Jetzt hörst du es!`;
+  if(c==='G')return `🔍 Endung <b>-ig</b>, das hörst du beim Verlängern: <b>${t}</b>.`;
+  if(c==='A')return 'Adjektive schreibt man <b>klein</b>.';
+  if(c==='N')return 'Nomen schreibt man <b>groß</b>. (Man kann <i>der, die, das</i> davorsetzen.)';
+  if(c==='K')return 'Vergleichsstufe: <b>'+right+' als</b> (mit Umlaut: a → ä, o → ö, u → ü).';
+  if(c==='S')return 'Höchststufe: <b>am …sten</b>.';
+  if(c==='W')return 'Verschieden → <b>als</b> (größer als). Gleich → <b>wie</b> (so groß wie).';
+  if(c==='P'){const T=STYPES[{'.':'A','?':'F','!':'B'}[right]];return T.ex+'.'}
+  return t;
+}
+function qSpot(src){
+  const parts=src.match(/\{[^}]*\}|[^\s{]+/g);
+  const tokens=parts.map(p=>{
+    if(p.charAt(0)!=='{')return {t:p};
+    const alts=p.slice(1,-1).split('|');
+    return {t:alts[0],wrongs:alts.slice(1).map(a=>{const i=a.indexOf('~');return i<0?{t:a,h:''}:{t:a.slice(0,i),h:a.slice(i+1)}})};
+  });
+  const slots=tokens.map((k,i)=>k.wrongs?i:-1).filter(i=>i>=0);
+  const n=Math.min(slots.length,Math.random()<.45?1:2);
+  const pick=shuffle(slots).slice(0,n).sort((a,b)=>a-b),notes=[];
+  const out=tokens.map((k,i)=>{
+    if(pick.indexOf(i)<0)return {t:k.t};
+    const w=shuffle(k.wrongs)[0];const qt=x=>/^[.!?]$/.test(x)?`„${x}“`:x;notes.push(`<s>${qt(w.t)}</s> → <b>${qt(k.t)}</b>: ${spotHint(w.h,k.t)}`);
+    return {t:w.t,fix:k.t};
+  });
+  const right=tokens.map(k=>k.t).join(' ').replace(/ ([.,!?])/g,'$1');
+  return {task:'Tippe die falschen Wörter an!',prompt:`<div class="spothead">🕵️ In diesem Satz ${n===1?'steckt <b>1 Fehler</b>':`stecken <b>${n} Fehler</b>`}.</div>`,
+    spot:{tokens:out,n},answer:right,explain:notes.join('<br>')+`<br>Richtig: „${right}“`};
+}
+
+/* ---------- Hör-Diktat: die Eule liest vor, das Kind schreibt ---------- */
+const isNoun=w=>/^(der|die|das) /.test(w);
+function dVerl(v){
+  const full=v[0].replace('_',v[1]),q=qVerl(v);
+  const noun=isNoun(full),verb=/^(er|sie|es) /.test(full);
+  const accept=[full];if(noun||verb)accept.push(cap(full));if(noun)accept.push(full.split(' ').slice(1).join(' '));
+  return {input:true,say:full,task:noun?'Hör gut zu und schreibe das Nomen mit Artikel!':verb?'Hör gut zu und schreibe genau, was du hörst!':'Hör gut zu und schreibe das Adjektiv!',
+    prompt:'',answer:full,accept,explain:q.explain};
+}
+function dNomen([n,a]){
+  return {input:true,say:a,task:'Hör gut zu und schreibe das Adjektiv!',prompt:`<div class="dtip">Tipp: Es kommt von <b>${n}</b>.</div>`,answer:a,
+    explain:`${n} → <b>${a.replace(/(isch|lich|ig)$/,'<span class="hl">$1</span>')}</b><br>Adjektive schreibt man <b>klein</b>!`};
+}
+function dStufe([p,k,s],which){
+  const ans=which==='s'?s:k+' als';
+  return {input:true,say:ans,task:which==='s'?'Hör gut zu und schreibe die Höchststufe!':'Hör gut zu und schreibe die Vergleichsstufe mit „als“!',
+    prompt:`<div class="dtip">Grundstufe: <b>${p}</b></div>`,answer:ans,explain:`So wird <b>${p}</b> gesteigert:`+chainHTML(p,k,s)};
+}
+const DSATZ=SATZ.filter(s=>s[0].split(' ').length<=4&&s[0].indexOf(',')<0);
+function dSatz([s,t]){
+  const T=STYPES[t],full=s+T.mark;
+  return {input:true,say:full,task:'Hör gut zu und schreibe den ganzen Satz – mit Satzzeichen!',prompt:'',answer:full,accept:[full,s+' '+T.mark],
+    explain:`${T.ex}<br>„${full}“`};
+}
+
 /* ---------- Registrieren ---------- */
 LernApp.register({
   id:'deutsch-grammatik-2026-11',
@@ -288,7 +381,27 @@ LernApp.register({
      write:()=>SATZ.map(s=>()=>wZeichen(s))}
   ],
   boss:{name:'Grammatik-Drache',icon:'🐉',count:15,lives:3},
+  badgeTitle:'Grammatik-Abzeichen',
+  badges:[
+    {id:'labor',icon:'🧪',name:'Adjektiv-Forscher',desc:'3 Sterne im Adjektiv-Labor',test:c=>c.starsIn('probe')>=3},
+    {id:'turm',icon:'🚀',name:'Turm-Kletterer',desc:'3 Sterne im Steiger-Turm',test:c=>c.starsIn('steigern')>=3},
+    {id:'werkstatt',icon:'🛠️',name:'Wort-Schmied',desc:'3 Sterne in der Wort-Werkstatt',test:c=>c.starsIn('nomen')>=3},
+    {id:'detektiv',icon:'🔍',name:'Meister-Detektiv',desc:'3 Sterne im Detektiv-Büro',test:c=>c.starsIn('verl')>=3},
+    {id:'insel',icon:'🏝️',name:'Insel-Kapitän',desc:'3 Sterne auf der Satz-Insel',test:c=>c.starsIn('satz')>=3},
+    {id:'fehler',icon:'🕵️',name:'Fehler-Jäger',desc:'3 Sterne beim Fehler-Detektiv',test:c=>c.starsIn('detektiv')>=3},
+    {id:'ohr',icon:'🎧',name:'Gute Ohren',desc:'3 Sterne im Hör-Diktat',test:c=>c.starsIn('diktat')>=3},
+    {id:'drache',icon:'🐉',name:'Drachen-Zähmer',desc:'Den Grammatik-Drachen besiegt',test:c=>c.kind==='boss'&&c.won&&!c.gold},
+    {id:'r100',icon:'📖',name:'Grammatik-Fan',desc:'100 Grammatik-Fragen richtig',test:c=>c.correct>=100},
+    {id:'krone',icon:'👑',name:'Grammatik-König',desc:'Alle Sterne im Grammatiktest',test:c=>c.allStars}
+  ],
+  missions:[
+    {id:'detektiv',name:'Fehler-Detektiv',icon:'🕵️',color:'#334155',color2:'#64748b',count:8,topic:'In jedem Satz verstecken sich Fehler. Findest du sie alle?',
+     cats:()=>[SPOT.map(x=>()=>qSpot(x))]},
+    {id:'diktat',name:'Hör-Diktat',icon:'🎧',color:'#9333ea',color2:'#ec4899',count:10,topic:'Die Eule liest vor – du schreibst! Ton anschalten 🔊',
+     cats:()=>[VL.filter(v=>'dt'.indexOf(v[1])>=0).map(v=>()=>dVerl(v)),VL.filter(v=>'gkbp'.indexOf(v[1])>=0).map(v=>()=>dVerl(v)),
+       NA.map(x=>()=>dNomen(x)),ADJ0.map(a=>()=>dStufe(a,'k')).concat(ADJ0.map(a=>()=>dStufe(a,'s')),ADJ1.map(a=>()=>dStufe(a,'k')),ADJ1.map(a=>()=>dStufe(a,'s'))),DSATZ.map(x=>()=>dSatz(x))]}
+  ],
   // Spannung bis zum Test: jeden Tag kommt etwas Neues dazu
-  unlock:{blitz:'2026-11-17',chest:'2026-11-18',gold:'2026-11-18',exam:'2026-11-18'}
+  unlock:{blitz:'2026-11-17',chest:'2026-11-18',gold:'2026-11-18',exam:'2026-11-18',detektiv:'2026-11-18',diktat:'2026-11-19'}
 });
 })();

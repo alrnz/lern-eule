@@ -19,9 +19,10 @@ Node ist hier v12: in Code, den `tools/check.js` ausführt, kein `??` und kein `
 ## Neues Lernpaket hinzufügen
 Meist kommt eine Elternnachricht (Foto) mit Testdatum und Themen. Dann:
 1. `modules/<fach>-<thema>-<jjjj-mm>.js` anlegen (Vorlage: `modules/deutsch-grammatik-2026-11.js`).
-2. In `modules/index.js` eintragen.
-3. `node tools/check.js` muss fehlerfrei durchlaufen.
-4. `VERSION` in `sw.js` erhöhen, dann deployen.
+2. Eigene Abzeichen (`badges`) festlegen – jedes Lernpaket hat welche.
+3. In `modules/index.js` eintragen.
+4. `node tools/check.js` muss fehlerfrei durchlaufen.
+5. `VERSION` in `sw.js` erhöhen, dann deployen.
 
 Pro Welt mindestens ~15–20 verschiedene Fragen, damit Wiederholen nicht langweilig wird.
 Jede Frage bekommt eine `explain`, die die Regel kurz erklärt; das ist der eigentliche Lerneffekt.
@@ -49,8 +50,16 @@ LernApp.register({
     // (die Schatzkiste merkt sich Fragen über ihre Position, z. B. "nomen:w:5" oder "nomen:c0:5").
     write:()=>[ ()=>({input:true,...frage}), ... ]
   }],
-  boss:{name:'Zahlen-Drache', icon:'🐉', count:15, lives:3}   // optional, mischt alle Welten,
-  unlock:{chest:'2026-12-01', blitz:'2026-12-01', gold:'2026-12-02', exam:'2026-12-03'} // optional: Spezial-Missionen erst ab Datum (vorher „Geheime Mission“)
+  boss:{name:'Zahlen-Drache', icon:'🐉', count:15, lives:3},  // optional, mischt alle Welten (goldName: eigener Name für den goldenen Endgegner)
+  // optional: Zusatz-Missionen (wie Welten mit Sternen und Schatzkiste, aber nicht im Endgegner/Blitz und
+  // nicht nötig für den Endgegner). Stehen unter „Spezial-Missionen“, per unlock[id] zeitgesteuert.
+  missions:[{id:'detektiv', name:'Fehler-Detektiv', icon:'🕵️', color:'#334155', color2:'#64748b', count:8, topic:'…', cats:()=>[[…]]}],
+  unlock:{chest:'2026-12-01', blitz:'2026-12-01', gold:'2026-12-02', exam:'2026-12-03', detektiv:'2026-12-02'}, // optional: Spezial-Missionen, eigene missions-IDs und Welt-IDs erst ab Datum (vorher „Geheime Mission/Welt“). Lokal ist alles offen, außer mit ?live in der Adresse
+  mascot:'🦉',                     // optional: Maskottchen auf der Paketseite und in den Rückmeldungen (Emoji oder SVG-HTML)
+  badgeTitle:'Maulwurf-Abzeichen', // optional: Überschrift der eigenen Abzeichen
+  badgeGroup:'lernwoerter',        // optional: mehrere Pakete teilen sich Abzeichen und Zähler (z. B. alle Lernwörter-Wochen)
+  // PFLICHT: eigene Abzeichen (zusätzlich zu den allgemeinen). id nie ändern, gespeichert als "<paket-id oder badgeGroup>:<id>".
+  badges:[{id:'meister', icon:'⛏️', name:'Einmaleins-Meister', desc:'3 Sterne in …', test:c=>c.starsIn('reihe6')>=3}]
 });
 })();
 ```
@@ -68,13 +77,42 @@ LernApp.register({
 | `fill` | was in die Lücke kommt, falls nicht `answer` |
 | `input` | `true` = Schreib-Frage (Textfeld statt Knöpfe, nur in `write`) |
 | `accept` | bei Schreib-Fragen: alle akzeptierten Schreibweisen (muss `answer` enthalten). Groß/klein zählt! |
+| `spot` | Fehler-Detektiv: `{tokens:[{t:'Wort'},{t:'Hunt',fix:'Hund'}], n:1}`; Kind tippt die `n` falschen Wörter an. Kein `options`; `answer` = richtiger Satz |
+| `num` | bei Schreib-Fragen: Zahlentastatur statt Buchstaben, kein Hinweis auf Groß/klein |
+| `say` | Hör-Diktat (nur mit `input:true`): Text, den die Eule per Sprachausgabe vorliest; `prompt` darf leer sein |
 
 Spezial-Missionen baut die App automatisch für jedes Lernpaket: Probetest (wenn es `write` gibt),
 Fehler-Schatzkiste (falsch beantwortete Fragen, 2× richtig = 💎), Blitzrunde (60 s, Rekord), Endgegner und
-goldener Endgegner (1 Leben, nach dem Endgegner). Reservierte Welt-IDs: boss, gold, exam, chest, blitz.
+goldener Endgegner (1 Leben, nach dem Endgegner). Blitzrunde: höchstens 10 Runden pro Tag. Reservierte Welt-IDs: boss, gold, exam, chest, blitz.
 Level: bis Level 20 je 100 XP, danach jede Stufe +30 XP (`costOf` in js/app.js).
 
-Nützliche CSS-Klassen in `prompt`/`explain`: `bigword`, `chain` + `st` + `arr`, `mini`, `hl` (Markierung), `<b>`.
+Nützliche CSS-Klassen in `prompt`/`explain`: `bigword`, `chain` + `st` + `arr`, `mini`, `hl` (Markierung), `<b>`;
+für Mathe: `stw` (Stellenwerttafel), `calc` (schriftlich untereinander), `mauer` + `brick` (Zahlenmauer), `strahl` (Zahlenstrahl).
+
+### Eigene Abzeichen (`badges`)
+`test(c)` wird nach jeder richtigen Antwort und am Ende jeder Runde in diesem Lernpaket aufgerufen. `c` enthält:
+`kind` (world, boss, exam, blitz, chest), `world` (Welt-ID), `stars` (Sterne dieser Runde), `won` (nicht verloren),
+`gold` (goldener Endgegner), `streak` (aktuelle Serie), `score` (Blitzrunde), `correct` (richtige Antworten in diesem Paket insgesamt),
+`starsIn(weltId)`, `allWorlds` (alle Welten mit Stern), `allStars` (alle Sterne), `blitzRecord`.
+XP, Level und die allgemeinen Abzeichen gelten über alle Lernpakete. Jedes Lernpaket braucht eigene Abzeichen (ca. 8–12, `check.js` prüft das).
+Anzeige: Die Startseite zeigt alle Abzeichen gesammelt (allgemein + alle Pakete), eine Paketseite nur die eigenen des Pakets.
+Level-Titel: 60 Stück in `TITLES`, danach geht es mit Sternen weiter (… ⭐2).
+
+### Dauerhafte Lernpakete
+Ohne `date` ist ein Lernpaket dauerhaft zum Üben da (z. B. `modules/mathe-maulwurf.js`, Mathe Klasse 3,
+Themen nach „Denken und Rechnen 3 – Forderheft“, Westermann). Dateiname dann ohne Datum. Mathe-Aufgaben werden dort
+mit festem Startwert erzeugt (`gen(seed,n,…)`), damit die Schatzkiste sie wiederfindet: neue Listen nur hinten anfügen,
+bestehende seeds und Anzahlen nicht ändern.
+
+### Lernwörter (`modules/deutsch-lernwoerter.js`)
+Jede Woche ~10 Lernwörter aus der Schule. Neue Woche = Eintrag **oben** in `WOCHEN` (`from` = Montag der Woche,
+optional `test` = Diktat-Datum). Daraus wird automatisch ein eigenes Lernpaket `lernwoerter-<from>` mit den Spielen
+Hör-Diktat, Blitzblick (beide `noMix`: nicht im Endgegner/Blitz), Richtig geschrieben?, Lücken-Wörter, Fehler-Finder,
+Endgegner und Probetest (= ganzes Diktat). Falsche Schreibweisen und Erklärungen erzeugen die `RULES` in der Datei;
+eigene Tipps/Vorlese-Texte per `['Wort','Tipp','Vorlese-Text']`. Startseite: Bereich „✏️ Lernwörter“ mit aktueller und
+letzter Woche, ältere eingeklappt. Wörter einer Woche nie umsortieren (Schatzkiste).
+Spiele vorerst sperren: `closed:['blick',…]` in der Woche (ohne Datum, Karte „Geheime Welt – bald“). Später freischalten:
+aus `closed` nehmen und `unlock:{blick:'JJJJ-MM-TT'}` setzen, dann kommt die Ankündigung. `closed` geht in jedem Lernpaket.
 
 ## Deploy
 Live: https://alrnz.github.io/lern-eule/ (GitHub Pages aus `main`, Repo `alrnz/lern-eule`, öffentlich).
