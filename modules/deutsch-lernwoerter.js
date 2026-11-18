@@ -18,7 +18,8 @@ const {shuffle,pick3,uniq,esc}=LernApp.util;
 
 const WOCHEN=[
  {from:'2026-11-16', // optional: test:'2026-11-27' (Diktat-Datum, zeigt Countdown)
-  closed:['blick','richtig','luecke','detektiv','blitz','exam','chest','gold'], // erstmal nur das Hör-Diktat
+  // Mi nur Hör-Diktat, Do zwei Spiele mehr, ab Fr alles:
+  unlock:{blick:'2026-11-19',richtig:'2026-11-19',luecke:'2026-11-20',detektiv:'2026-11-20',chest:'2026-11-20',blitz:'2026-11-20',exam:'2026-11-20',gold:'2026-11-20'},
   words:[
    {w:'Abend',say:'der Abend',accept:['der Abend'],tip:'Am Ende hört man t. Verlängern: die A-ben-<b>d</b>e → Aben<b>d</b>. Nomen schreibt man groß.'},
    {w:'befehlen',tip:'be-feh-len: Das <b>h</b> hört man nicht – merken!',wrong:['befelen','befählen']},
@@ -103,6 +104,11 @@ function tipOf(W){
 const explainOf=W=>`${marked(W.w)}${tipOf(W)}`;
 
 /* ---------- Lernpaket pro Woche ---------- */
+// Wird noch ein Spiel später freigeschaltet? (für den Begrüßungstext)
+function later(week){
+  const t=new Date(),k=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  return Object.keys(week.unlock||{}).some(id=>week.unlock[id]>k);
+}
 function build(week){
   const W=week.words.map(x=>{const o=typeof x==='string'?{w:x}:x;return {w:o.w,tip:o.tip||'',say:o.say||o.w,accept:[o.w].concat(o.accept||[]),wrong:o.wrong||[],gap:o.gap}});
   const ws=W.map(x=>x.w),n=W.length;
@@ -116,7 +122,7 @@ function build(week){
     date:week.test, testName:'Diktat',
     icon:'✏️', color:'#16a34a', questionsPerWorld:n, examCount:n,
     closed:week.closed, unlock:week.unlock,
-    hello:week.closed&&week.closed.length?`Deine ${n} Lernwörter! Hör gut zu und schreib sie auf. Weitere Spiele kommen bald. ✍️`
+    hello:(week.closed&&week.closed.length)||later(week)?`Deine ${n} Lernwörter! Hör gut zu und schreib sie auf. Weitere Spiele kommen bald. ✍️`
       :`Deine ${n} Lernwörter! Spiel die Welten und schreib zum Schluss den Probetest – wie ein echtes Diktat. ✍️`,
     worlds:[
       {id:'hoeren',name:'Hör-Diktat',icon:'🎧',color:'#16a34a',color2:'#4ade80',noMix:true,
