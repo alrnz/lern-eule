@@ -88,7 +88,7 @@ const worlds=REIHEN.map((r,i)=>{
   };
 });
 worlds.push({
-  id:'mix',name:'Mix-Box',icon:'📦',color:'#78350f',color2:'#d97706',after:'r7',
+  id:'mix',name:'Mix-Box',icon:'📦',color:'#78350f',color2:'#d97706',after:'r7',keep:true, // bleibt sichtbar, auch mit 3 Sternen
   topic:'Ganz oben: alle 36 Karten bunt gemischt!',
   rules:'Alle Reihen durcheinander. Denk an die Tricks: verdoppeln, die Hälfte von mal 10, Tauschaufgaben!',
   cats:()=>[
@@ -105,6 +105,7 @@ LernApp.register({
   icon:'🐵', color:'#a16207', mascot:'🐵', daily:true, dailyName:'Affen-Box',
   hello:'Ich bin Kiki! Wir fangen ganz unten an – das kannst du schon. Mit <b>2 Sternen</b> geht der nächste Ast auf. 🍌',
   questionsPerWorld:10, examCount:15,
+  hideDone:true, doneLabel:'Fertige Äste', // Äste mit 3 Sternen eingeklappt (Mix-Box bleibt: keep)
   missionAfter:{blitz:'r2',exam:'r5'}, // Blitzrunde ab 2 Sternen im 2er-Ast, Probetest ab 2 Sternen im 5er-Ast
   worlds,
   boss:{name:'Gorilla Gustav',icon:'🦍',count:15,lives:3,goldName:'Goldener Gorilla'},

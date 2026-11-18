@@ -69,8 +69,10 @@ function newCode(){return CODE_WORDS[rndInt(CODE_WORDS.length)]+'-'+CODE_WORDS[r
 /** Fehlende oder kaputte Felder ergänzen (ältere Spielstände, geladene Sicherungen). */
 function fixState(){
   ['xp','answered','correct','bestCombo','gems'].forEach(k=>{if(typeof S[k]!=='number'||!(S[k]>=0))S[k]=0});
-  ['stars','mistakes','blitz','pc'].forEach(k=>{if(!S[k]||typeof S[k]!=='object'||Array.isArray(S[k]))S[k]={}}); // pc: richtige Antworten je Lernpaket
+  ['stars','mistakes','blitz','pc','mistAt'].forEach(k=>{if(!S[k]||typeof S[k]!=='object'||Array.isArray(S[k]))S[k]={}}); // pc: richtige Antworten je Lernpaket
   ['badges','days','seen','fullDays'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]}); // seen: angekündigte Freischaltungen, fullDays: Tage mit Tages-Truhe
+  if(S.gemDay&&(typeof S.gemDay!=='object'||typeof S.gemDay.n!=='number'))S.gemDay=null; // gemDay: Edelsteine heute
+  if(S.plays&&(typeof S.plays!=='object'||!S.plays.n||typeof S.plays.n!=='object'))S.plays=null; // plays: Runden heute je Spiel
   if(typeof S.name!=='string')S.name='';
   if(!S.sync||typeof S.sync!=='object'||Array.isArray(S.sync))S.sync={}; // Server-Sicherung: id = Code ohne Namen
   if(!CODE_RE.test(S.sync.id||''))S.sync={id:newCode(),dirty:1};
@@ -81,6 +83,9 @@ function save(){S.sync.dirty=1;store();syncLater()}
 const starKey=(m,w)=>m.id+'/'+w.id;
 const getStars=(m,w)=>S.stars[starKey(m,w)]||0;
 const mist=m=>S.mistakes[m.id]||(S.mistakes[m.id]={});
+/* Schatzkiste: Wann kam eine Frage (zuletzt) hinein? S.mistAt[paket][key]='JJJJ-MM-TT'. Sichtbar erst ab dem Tag danach,
+ * damit sich absichtliche Fehler nicht lohnen (und es echtes Wiederholen mit Abstand ist). Alte Einträge ohne Datum sind sichtbar. */
+const mistAt=m=>S.mistAt[m.id]||(S.mistAt[m.id]={});
 
 /* ================= Dates ================= */
 function parseDate(d){if(!d)return null;const p=d.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
@@ -110,6 +115,14 @@ const openDate=(m,id)=>m.unlock&&m.unlock[id]?m.unlock[id]:null;
 // Lokal (Mac oder Heimnetz) ist zum Ausprobieren alles offen; online gilt das Datum.
 // Mit ?live in der Adresse verhält sich auch die lokale Version wie online (zum Ausprobieren der Freischaltungen).
 const LOCAL=/^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)&&!/[?&]live\b/.test(location.search);
+/* Schlafenszeit: ab 21:20 Uhr schlafen die Tiere, morgens ab 6:00 geht es weiter. Eine laufende Runde darf noch fertig werden.
+ * Lokal aus (mit ?live wie online), mit ?schlafen in der Adresse zum Ausprobieren. */
+const SLEEP_FROM=21*60+20,WAKE_AT=6*60;
+const FORCE_SLEEP=/[?&]schlafen\b/.test(location.search);
+function sleeping(){
+  if(FORCE_SLEEP)return true;if(LOCAL)return false;
+  const d=new Date(),t=d.getHours()*60+d.getMinutes();return t>=SLEEP_FROM||t<WAKE_AT;
+}
 /* m.closed=['id',…]: vorerst gesperrt, noch ohne Datum. Später aus closed nehmen und unlock[id] setzen (dann mit Ankündigung). */
 const isClosed=(m,id)=>!!(m.closed&&m.closed.indexOf(id)>=0);
 const isOpen=(m,id)=>{const d=openDate(m,id);return LOCAL||(!isClosed(m,id)&&(!d||daysUntil(d)<=0))};
@@ -207,12 +220,20 @@ function goldW(m){
     topic:'Nur 1 Leben! 20 Fragen. Für echte Profis.',count:20,lives:1};
 }
 const examW=m=>({id:'exam',kind:'exam',name:'Probetest',icon:'✍️',color:'#0f766e',color2:'#14b8a6',topic:'Antworten selbst schreiben – wie im echten Test!',count:m.examCount||12});
-const chestW=()=>({id:'chest',kind:'chest',name:'Fehler-Schatzkiste',icon:'💎',color:'#be185d',color2:'#ec4899',topic:'Deine kniffligen Fragen. 2× richtig = 1 Edelstein!'});
+const chestW=()=>({id:'chest',kind:'chest',name:'Fehler-Schatzkiste',icon:'💎',color:'#be185d',color2:'#ec4899',topic:'Deine kniffligen Fragen von gestern. 2× richtig = 1 Edelstein!'});
 // Blitzrunde: höchstens BLITZ_MAX Runden pro Tag (für alle Lernpakete zusammen). Gezählt wird beim Start.
 const BLITZ_MAX=10;
 function blitzLeft(){const d=dkey(today0()),b=S.blitzDay;return b&&b.d===d?Math.max(0,BLITZ_MAX-b.n):BLITZ_MAX}
 function useBlitz(){const d=dkey(today0());if(!S.blitzDay||S.blitzDay.d!==d)S.blitzDay={d,n:0};S.blitzDay.n++;save()}
 const BLITZ_DONE=`Für heute hast du alle ${BLITZ_MAX} Blitzrunden geschafft! ⚡ Morgen geht es weiter. Bis dahin warten die anderen Missionen auf dich! 🦉`;
+/* Jedes Spiel (Welt, Endgegner, Probetest, Schatzkiste, Blitzrunde, Mission) höchstens PLAY_MAX-mal pro Tag und Lernpaket.
+ * Gezählt wird beim Start. Gespeichert in S.plays={d:'JJJJ-MM-TT',n:{'paket/welt':Anzahl}}. */
+const PLAY_MAX=10;
+function playRec(){const d=dkey(today0());if(!S.plays||S.plays.d!==d)S.plays={d,n:{}};return S.plays}
+const playsLeft=(m,w)=>Math.max(0,PLAY_MAX-(playRec().n[starKey(m,w)]||0));
+function usePlay(m,w){const r=playRec(),k=starKey(m,w);r.n[k]=(r.n[k]||0)+1;save()}
+const PLAY_DONE=w=>`„${w.name}“ hast du heute schon ${PLAY_MAX}× gespielt! 🌙 Morgen geht es hier weiter. Probier doch etwas anderes!`;
+const jsq=s=>esc(s).replace(/'/g,"\\'");
 const blitzW=()=>({id:'blitz',kind:'blitz',name:'Blitzrunde',icon:'⚡',color:'#1d4ed8',color2:'#3b82f6',topic:'60 Sekunden – so viele richtig wie möglich!',seconds:60});
 /** Zusatz-Missionen aus dem Lernpaket (m.missions): wie Welten mit Sternen, aber nicht im Endgegner/Blitz
  *  und nicht nötig, um den Endgegner zu wecken. Können per m.unlock[id] erst ab einem Datum offen sein. */
@@ -238,7 +259,16 @@ function byKey(m,key){
   else{const c=w.cats()[+p[1].slice(1)];f=c?c[+p[2]]:null}
   return f?()=>tag(f(),w,key):null;
 }
-const chestCount=m=>Object.keys(mist(m)).length;
+const chestReady=(m,k)=>{const d=mistAt(m)[k];return !d||d<dkey(today0())};
+const chestKeys=m=>Object.keys(mist(m)).filter(k=>chestReady(m,k));
+const chestCount=m=>chestKeys(m).length;
+const chestNew=m=>Object.keys(mist(m)).length-chestCount(m); // kommen morgen dazu
+function chestDrop(m,k){delete mist(m)[k];delete mistAt(m)[k]}
+/* Höchstens GEM_MAX Edelsteine pro Tag (alle Lernpakete zusammen). In der Schatzkiste gibt es weniger XP (CHEST_XP). */
+const GEM_MAX=5,CHEST_XP=5;
+function gemsLeft(){const d=dkey(today0()),g=S.gemDay;return g&&g.d===d?Math.max(0,GEM_MAX-g.n):GEM_MAX}
+function useGem(){const d=dkey(today0());if(!S.gemDay||S.gemDay.d!==d)S.gemDay={d,n:0};S.gemDay.n++}
+const GEMS_DONE=`Heute hast du schon ${GEM_MAX} Edelsteine gesammelt! 💎 Die Schatzkiste macht jetzt Pause – morgen geht es weiter.`;
 
 /* ================= Effects ================= */
 let AC=null;
@@ -295,9 +325,12 @@ function modal(html,closeOnBg){
 /* ================= Routing ================= */
 const PREFIX='lernpaket-';
 let CUR=null; // aktuelles Lernpaket
+let SLEPT=null; // war beim letzten Seitenaufbau Schlafenszeit?
 function route(){
   stopTimer();Q=null;
   if(tryReload())return;
+  SLEPT=sleeping();
+  if(SLEPT){CUR=null;return renderSleep()}
   const h=location.hash.slice(1);
   const m=h.indexOf(PREFIX)===0?LernApp.modules.find(x=>x.id===h.slice(PREFIX.length)):null;
   if(m){CUR=m;renderPack(m)}else{CUR=null;renderHome()}
@@ -306,12 +339,14 @@ function go(id){const h=id?'#'+PREFIX+id:'';if(location.hash===h||(!h&&!location
 addEventListener('hashchange',route);
 
 /* ================= Home ================= */
-function statsHTML(){
+/** Ohne m: alles zusammen (Startseite). Mit m: Sterne und richtige Antworten nur in diesem Lernpaket (bzw. seiner badgeGroup). */
+function statsHTML(m){
   const L=levelInfo(S.xp),lvl=L.lvl,pct=Math.round(L.into/L.need*100);
   return `<div class="stats">
     <div class="lvl"><div class="lvlbadge" data-l="${lvl}" style="--p:${pct}%"></div>
       <div style="flex:1"><div class="lvltitle">Level ${lvl} · ${titleOf(lvl)}</div><div class="xpbar"><div style="width:${pct}%"></div></div><div class="xptext">${L.into} / ${L.need} XP bis Level ${lvl+1}${lvl>=STEP_UNTIL?' · ab jetzt wird jedes Level schwerer! 💪':''}</div></div></div>
-    <div class="chips"><span title="Sterne">⭐ ${totalStars()}</span><span title="Beste Serie">🔥 ${S.bestCombo}</span><span title="Richtige Antworten">✅ ${S.correct}</span>${S.gems?`<span title="Edelsteine">💎 ${S.gems}</span>`:''}</div>
+    <div class="chips">${m?`<span title="Sterne in diesem Lernpaket">⭐ ${packStars(m)} / ${maxStars(m)}</span><span class="pcorrect" title="Richtige Antworten in diesem Lernpaket">✅ ${S.pc[bkey(m)]||0} richtig ${m.badgeGroup==='lernwoerter'?'bei den Lernwörtern':'in '+esc(m.dailyName||m.title)}</span>`
+      :`<span title="Sterne">⭐ ${totalStars()}</span><span title="Beste Serie">🔥 ${S.bestCombo}</span><span title="Richtige Antworten">✅ ${S.correct}</span>`}${S.gems?`<span title="Edelsteine">💎 ${S.gems}</span>`:''}</div>
   </div>`;
 }
 function packCard(m,i){
@@ -377,6 +412,23 @@ function renderHome(){
   <div class="footer"><button class="btn ghost" onclick="LernApp._toggleSound()">${S.sound?'🔊 Ton an':'🔇 Ton aus'}</button><button class="btn ghost" onclick="LernApp._backupAsk()">💾 Sichern / Laden</button><button class="btn ghost" onclick="LernApp._resetAsk()">↺ Neu starten</button></div>`;
   scrollTo(0,0);
 }
+
+/* ================= Schlafenszeit ================= */
+function renderSleep(){
+  const pets=uniq(['🦉'].concat(LernApp.modules.map(m=>m.mascot).filter(x=>x&&x.length<=4&&x.indexOf('<')<0)));
+  app.innerHTML=`
+  <div class="title">Lern-Eule<small>Gute Nacht!</small></div>
+  <div class="sleep"><div class="moon">🌙</div>
+    <div class="pets">${pets.map((a,i)=>`<span style="animation-delay:${i*.5}s">${a}<i>💤</i></span>`).join('')}</div>
+    <h2>Pssst … die Tiere schlafen jetzt.</h2>
+    <p>Ab 21:20 Uhr ist Schlafenszeit – auch für dich! 😴<br>Morgen früh geht es weiter.</p>
+    <p class="mini">Im Schlaf sortiert dein Kopf alles, was du heute geübt hast. 🧠✨</p></div>
+  ${statsHTML()}
+  <div class="footer"><button class="btn ghost" onclick="LernApp._backupAsk()">💾 Sichern / Laden</button></div>`;
+  scrollTo(0,0);
+}
+/* Um 21:20 (und morgens) von selbst umschalten (Timer in boot), aber nie mitten in einer Runde oder bei offenem Fenster. */
+function sleepCheck(){if(sleeping()!==SLEPT&&!Q&&!document.querySelector('.modal'))route()}
 
 /* ================= Tages-Serie ================= */
 const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
@@ -474,14 +526,18 @@ function dailyPanel(){
 function worldCard(m,w,i,locked,lockMsg){
   const st=getStars(m,w),hasStars=w.kind!=='chest'&&w.kind!=='blitz';
   let extra='';
-  if(w.kind==='chest'){const c=chestCount(m);extra=`<div class="wx">${c?`${c} knifflige ${c===1?'Frage':'Fragen'} · 💎 ${S.gems}`:'Noch leer – super! 💎 '+S.gems}</div>`}
-  if(w.kind==='blitz'){const b=S.blitz[m.id]||0,l=blitzLeft();extra=`<div class="wx">🏆 Rekord: ${b} · ${l?`noch ${l}× heute`:'morgen wieder'}</div>`;if(!l&&!locked){locked=true;lockMsg=BLITZ_DONE}}
+  if(w.kind==='chest'){const c=chestCount(m),n=chestNew(m);extra=`<div class="wx">${c?`${c} knifflige ${c===1?'Frage':'Fragen'} · 💎 ${S.gems}`:'Noch leer – super! 💎 '+S.gems}</div>${n?`<div class="wleft">🌙 ${n} ${n===1?'Frage kommt':'Fragen kommen'} morgen dazu</div>`:''}`;
+    if(c&&!gemsLeft()&&!locked){locked=true;lockMsg=GEMS_DONE}}
+  const left=Math.min(playsLeft(m,w),w.kind==='blitz'?blitzLeft():PLAY_MAX),tired=!left&&!locked;
+  if(w.kind==='blitz'){const b=S.blitz[m.id]||0;extra=`<div class="wx">🏆 Rekord: ${b} · ${left?`noch ${left}× heute`:'morgen wieder'}</div>`}
+  if(tired){locked=true;lockMsg=w.kind==='blitz'&&!blitzLeft()?BLITZ_DONE:PLAY_DONE(w)}
+  const few=!locked&&left<=3&&w.kind!=='blitz'?`<div class="wleft">noch ${left}× heute</div>`:'';
   const empty=w.kind==='chest'&&!chestCount(m);
-  const click=locked?`LernApp._locked('${esc(lockMsg||'')}')`:empty?`LernApp._locked('Die Schatzkiste füllt sich mit Fragen, die du falsch hattest.')`:`LernApp.start('${w.id}')`;
+  const click=locked?`LernApp._locked('${jsq(lockMsg||'')}')`:empty?`LernApp._locked('${chestNew(m)?'Deine kniffligen Fragen kommen über Nacht in die Schatzkiste. Morgen kannst du sie hier üben! 🌙':'Die Schatzkiste füllt sich mit Fragen, die du falsch hattest – immer am Tag danach.'}')`:`LernApp.start('${w.id}')`;
   return `<button class="world ${w.kind||''} ${w.gold?'goldw':''} ${locked?'locked':''}" style="--wc:${w.color};--wc2:${w.color2||w.color};animation-delay:${i*.06}s" onclick="${click}">
-    <div class="wi">${locked?'🔒':w.icon}</div><div class="wn">${esc(w.name)}</div><div class="wt">${w.topic||''}</div>
-    ${hasStars?`<div class="ws">${[1,2,3].map(n=>`<span class="${n<=st?'':'off'}">⭐</span>`).join('')}</div>`:extra}
-    <div class="play">${locked&&w.kind==='blitz'&&!blitzLeft()?'Morgen wieder 🌙':locked?'Gesperrt':empty?'Leer':st?'Nochmal ▶':'Los ▶'}</div></button>`;
+    <div class="wi">${tired?'😴':locked?'🔒':w.icon}</div><div class="wn">${esc(w.name)}</div><div class="wt">${w.topic||''}</div>
+    ${hasStars?`<div class="ws">${[1,2,3].map(n=>`<span class="${n<=st?'':'off'}">⭐</span>`).join('')}</div>`:extra}${few}
+    <div class="play">${tired||(w.kind==='chest'&&locked&&lockMsg===GEMS_DONE)?'Morgen wieder 🌙':locked?'Gesperrt':empty?'Leer':st?'Nochmal ▶':'Los ▶'}</div></button>`;
 }
 function mysteryCard(m,w,i){
   const d=openDate(m,w.id),t=d&&!isClosed(m,w.id)?whenText(d):'bald',what=m.worlds.indexOf(w)>=0?['Welt','Geheime Welt']:['Mission','Geheime Mission'];
@@ -512,14 +568,19 @@ function renderPack(m){
   if(m.boss)sp(goldW(m),2,!bossDone,'Besiege zuerst '+bossW(m).name+'!');
   if(hasWrite(m))sp(examW(m),3,false);
   missions(m).forEach((w,i)=>sp(w,4+i,false));
+  // m.hideDone: Welten mit 3 Sternen wandern in einen eingeklappten Bereich (außer w.keep)
+  const card=(w,i)=>isOpen(m,w.id)?worldCard(m,w,i,!isReady(m,w),isReady(m,w)?'':afterMsg(m,w)):mysteryCard(m,w,i);
+  const isHidden=w=>m.hideDone&&!w.keep&&isOpen(m,w.id)&&getStars(m,w)>=3;
+  const shown=m.worlds.filter(w=>!isHidden(w)),hidden=m.worlds.filter(isHidden);
   app.innerHTML=`
   <div class="topbar"><button class="iconbtn" onclick="LernApp.go()" aria-label="Zurück">‹</button>
     <h1>${m.icon||''} ${esc(m.title)}<small>${esc(m.subject||'')}${m.date?' · '+fmtDate(m.date):''}</small></h1></div>
   <div class="hero"><div class="mascot">${m.mascot||'🦉'}</div><div class="bubble">${countdownText(m)}</div></div>
-  ${statsHTML()}
+  ${statsHTML(m)}
   ${m.daily?dailyPanel():dayStrip(m)}
   <div class="stitle">🗺️ Welten</div>
-  <div class="worlds">${m.worlds.map((w,i)=>isOpen(m,w.id)?worldCard(m,w,i,!isReady(m,w),isReady(m,w)?'':afterMsg(m,w)):mysteryCard(m,w,i)).join('')}${m.boss?(m.worlds.some(w=>!isOpen(m,w.id)&&isClosed(m,w.id))?mysteryCard(m,bossW(m),m.worlds.length):worldCard(m,bossW(m),m.worlds.length,!allDone&&!bossDone,'Schaffe zuerst alle Welten!')):''}</div>
+  <div class="worlds">${shown.map(card).join('')}${m.boss?(m.worlds.some(w=>!isOpen(m,w.id)&&isClosed(m,w.id))?mysteryCard(m,bossW(m),m.worlds.length):worldCard(m,bossW(m),shown.length,!allDone&&!bossDone,'Schaffe zuerst alle Welten!')):''}</div>
+  ${hidden.length?`<details class="older donew"><summary>✅ ${esc(m.doneLabel||'Fertige Welten')} mit 3 Sternen (${hidden.length})</summary><div class="worlds">${hidden.map(card).join('')}</div></details>`:''}
   <div class="stitle">🎯 Spezial-Missionen</div>
   <div class="worlds">${special.join('')}</div>
   ${packBadgesHTML(m)}
@@ -757,6 +818,8 @@ function mix(cats,n){
 const allChoice=m=>openWorlds(m).filter(x=>!x.noMix).map(x=>flat(pool(x))); // noMix: Schreib-Spiele nicht in Endgegner/Blitz
 function start(wid){
   const m=CUR;const w=findWorld(m,wid);if(!w||!isOpen(m,wid)||!isReady(m,w))return;
+  if(sleeping())return route();
+  if(!playsLeft(m,w))return LernApp._locked(PLAY_DONE(w));
   stopTimer();
   const kind=w.kind||'world';let qs;
   if(kind==='blitz'){if(!blitzLeft())return LernApp._locked(BLITZ_DONE);useBlitz()}
@@ -764,12 +827,14 @@ function start(wid){
   else if(kind==='exam')qs=mix(openWorlds(m).map(writePool),w.count);
   else if(kind==='blitz')qs=mix(allChoice(m),60);
   else if(kind==='chest'){
-    const M=mist(m),fs=[];
-    Object.keys(M).forEach(k=>{const f=byKey(m,k);if(f)fs.push(f);else delete M[k]});
+    if(!gemsLeft())return LernApp._locked(GEMS_DONE);
+    const fs=[];
+    chestKeys(m).forEach(k=>{const f=byKey(m,k);if(f)fs.push(f);else chestDrop(m,k)});
     qs=shuffle(fs).slice(0,10).map(f=>f());
     if(!qs.length){save();return go(m.id)}
   }
   else qs=mix(pool(w),w.count||m.questionsPerWorld||10);
+  usePlay(m,w);
   Q={m,w,kind,qs,i:0,errors:0,streak:0,maxStreak:0,xpGain:0,retry:[],inRetry:false,hearts:w.lives||0,lives:w.lives||0,
      total:qs.length,newBadges:[],wrongs:[],score:0,gemsWon:0,ok:0};
   if(kind==='blitz'){Q.end=Date.now()+w.seconds*1000;Q.timer=setInterval(blitzTick,100)}
@@ -884,7 +949,7 @@ function judge(ok,el,given){
   if(ok){
     S.correct++;Q.ok++;S.pc[bkey(m)]=(S.pc[bkey(m)]||0)+1;
     Q.streak++;Q.maxStreak=Math.max(Q.maxStreak,Q.streak);
-    const gain=10+Math.min(Q.streak-1,5)*2;
+    const gain=Q.kind==='chest'?CHEST_XP:10+Math.min(Q.streak-1,5)*2;
     const before=level();S.xp+=gain;Q.xpGain+=gain;
     floatXP(el,'+'+gain+' XP');sfx('good');
     const r=el.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,Q.kind==='blitz'?10:22,.8);
@@ -893,7 +958,7 @@ function judge(ok,el,given){
     if(Q.streak>=5)grant('combo5');if(Q.streak>=10)grant('combo10');
     if(Q.kind==='chest'&&q.key&&q.key in M){
       M[q.key]=(M[q.key]||0)+1;
-      if(M[q.key]>=2){delete M[q.key];S.gems++;Q.gemsWon++;gemMsg='💎 Edelstein gewonnen! Diese Frage kannst du jetzt.';
+      if(M[q.key]>=2){chestDrop(m,q.key);S.gems++;useGem();Q.gemsWon++;gemMsg='💎 Edelstein gewonnen! Diese Frage kannst du jetzt.'+(gemsLeft()?'':` Das war dein ${GEM_MAX}. Edelstein heute – morgen geht es weiter!`);
         setTimeout(()=>{comboPop('💎 +1 Edelstein!');sfx('gem');bigConfetti()},300);if(S.gems>=10)grant('gems10')}
       else{gemMsg='Noch 1× richtig, dann gibt es einen 💎! Die Frage kommt gleich nochmal.';Q.qs.push(q)}
     }
@@ -901,7 +966,7 @@ function judge(ok,el,given){
   }else{
     if(Q.kind!=='blitz'){const c=$('#qcard');c.classList.remove('pop');void c.offsetWidth;c.classList.add('shake')}
     sfx('bad');Q.streak=0;Q.bad=(Q.bad||0)+1;
-    if(q.key)M[q.key]=0; // ab in die Schatzkiste (bzw. dort von vorn)
+    if(q.key){M[q.key]=0;mistAt(m)[q.key]=dkey(today0())} // ab in die Schatzkiste (bzw. dort von vorn), sichtbar ab morgen
     if(Q.kind==='boss')Q.hearts--;
     else if(Q.kind==='world'){if(!Q.inRetry)Q.errors++;Q.retry.push(q)}
     else if(Q.kind==='exam'){Q.errors++;Q.wrongs.push({p:plain(q.prompt),given,answer:q.answer})}
@@ -924,7 +989,7 @@ function judge(ok,el,given){
     sub=q.spot?'<span class="k right">grün</span> = gefunden · <span class="k missed">orange</span> = übersehen · <span class="k wrong">rot</span> = war gar kein Fehler.'
       :q.input?`Richtig ist: <b>${esc(q.answer)}</b>${Q.caseHint?'<br>👀 Fast! Achte auf <b>Groß- und Kleinschreibung</b>.':''}`:'Die richtige Antwort ist grün.';
     if(Q.kind==='world')sub+=' Die Frage kommt später nochmal!';
-    if((Q.kind==='exam'||Q.kind==='boss')&&isOpen(m,'chest'))sub+=' Sie wandert in deine 💎 Schatzkiste.';
+    if((Q.kind==='exam'||Q.kind==='boss')&&isOpen(m,'chest'))sub+=' Morgen wartet sie in deiner 💎 Schatzkiste.';
   }
   $('#fb').innerHTML=`<div class="fb ${ok?'ok':'no'}"><div class="fbhead"><span class="owl">${m.mascot||'🦉'}</span><div>
     <div class="fbtitle">${ok?rnd(PRAISE):rnd(OOPS)}</div>${ok&&Q.streak>=3?`<span class="combo">🔥 ${Q.streak} richtig am Stück</span>`:''}${sub?`<div class="fbsub">${sub}</div>`:''}</div></div>
@@ -937,9 +1002,12 @@ function judge(ok,el,given){
 function next(){
   if(!Q||Q.kind==='blitz')return;
   if(Q.kind==='boss'&&Q.hearts<=0)return finish(true);
+  if(Q.kind==='chest'&&!gemsLeft())return finish(false);
   Q.i++;renderQ();
 }
 function resultBtns(m,primaryId,primaryLabel){
+  const pw=findWorld(m,primaryId);
+  if(sleeping()||(pw&&!playsLeft(m,pw)))return `${sleeping()?'<p class="mini">🌙 Schlafenszeit! Morgen geht es weiter.</p>':`<p class="mini">„${esc(pw.name)}“ ist für heute geschafft – morgen geht es weiter! 🌙</p>`}<div class="rbtns"><button class="btn primary" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button></div>`;
   return `<div class="rbtns"><button class="btn" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button><button class="btn primary" onclick="LernApp.start('${primaryId}')">${primaryLabel}</button></div>`;
 }
 function badgesNew(){
@@ -959,18 +1027,18 @@ function finish(lost){
       <p>${rec?(old?`Neuer Rekord! Vorher: ${old}`:'Dein erster Rekord!'):`Rekord: ${old} – schaffst du ihn beim nächsten Mal?`}</p>
       <div class="rstats"><div>${Q.score}<small>richtig</small></div><div>${Q.bad||0}<small>falsch</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div></div>
       <p class="challenge">👨‍👩‍👦 Fordere Mama oder Papa heraus: Wer schafft mehr?</p>
-      ${badgesNew()}${(()=>{const l=blitzLeft();return l?`<p class="mini">Heute noch ${l} ${l===1?'Blitzrunde':'Blitzrunden'}.</p>${resultBtns(m,'blitz','⚡ Nochmal')}`:`<p>Das war deine letzte Blitzrunde für heute. Morgen geht's weiter! 🌙</p><div class="rbtns"><button class="btn primary" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button></div>`})()}</div>`;
+      ${badgesNew()}${(()=>{const l=Math.min(blitzLeft(),playsLeft(m,w));return l?`<p class="mini">Heute noch ${l} ${l===1?'Blitzrunde':'Blitzrunden'}.</p>${resultBtns(m,'blitz','⚡ Nochmal')}`:`<p>Das war deine letzte Blitzrunde für heute. Morgen geht's weiter! 🌙</p><div class="rbtns"><button class="btn primary" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button></div>`})()}</div>`;
     if(rec){sfx('win');bigConfetti()}else sfx('good');
     Q=null;scrollTo(0,0);return;
   }
   /* ---- Schatzkiste ---- */
   if(kind==='chest'){
-    save();const left=chestCount(m);
+    save();const left=chestCount(m),more=chestNew(m),pause=!gemsLeft();
     app.innerHTML=`<div class="result" style="--wc:${w.color}"><div class="re">💎</div>
       <h2>${Q.gemsWon?`${Q.gemsWon} ${Q.gemsWon===1?'Edelstein':'Edelsteine'} gewonnen!`:'Weiter so!'}</h2>
-      <p>${left?`Noch ${left} knifflige ${left===1?'Frage':'Fragen'} in der Schatzkiste.`:'Die Schatzkiste ist leer – du kannst alle kniffligen Fragen! 🎉'}</p>
+      <p>${pause?`Das waren ${GEM_MAX} Edelsteine heute – die Schatzkiste macht Pause bis morgen. 🌙`:left?`Noch ${left} knifflige ${left===1?'Frage':'Fragen'} in der Schatzkiste.`:'Die Schatzkiste ist leer – du kannst alle kniffligen Fragen! 🎉'}${more?`<br>🌙 Morgen ${more===1?'kommt 1 Frage':'kommen '+more+' Fragen'} dazu.`:''}</p>
       <div class="rstats"><div>💎 ${S.gems}<small>Edelsteine insgesamt</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div></div>
-      ${badgesNew()}${left?resultBtns(m,'chest','💎 Weiter sammeln'):`<div class="rbtns"><button class="btn primary" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button></div>`}</div>`;
+      ${badgesNew()}${left&&!pause?resultBtns(m,'chest','💎 Weiter sammeln'):`<div class="rbtns"><button class="btn primary" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button></div>`}</div>`;
     if(Q.gemsWon){sfx('win');bigConfetti()}
     Q=null;scrollTo(0,0);return;
   }
@@ -992,7 +1060,7 @@ function finish(lost){
   const firstTry=kind==='boss'?Q.total-(Q.lives-Math.max(Q.hearts,0)):kind==='exam'?Q.ok:Q.total-Q.errors;
   let emoji,title,msg;
   const bn=esc(w.name);
-  if(lost){emoji=w.icon;title=`${bn} war stärker …`;msg=isOpen(m,'chest')?'Kein Problem! Deine Fehler liegen jetzt in der 💎 Schatzkiste – übe sie und probier es nochmal.':'Kein Problem! Schau dir den Spickzettel an und probier es nochmal.'}
+  if(lost){emoji=w.icon;title=`${bn} war stärker …`;msg=isOpen(m,'chest')?'Kein Problem! Deine Fehler warten ab morgen in der 💎 Schatzkiste. Schau dir den Spickzettel an und probier es nochmal.':'Kein Problem! Schau dir den Spickzettel an und probier es nochmal.'}
   else if(kind==='boss'){emoji=w.gold?'👑':'🏆';title=`${bn} besiegt!`;msg=w.gold?'Unglaublich – nur mit einem Leben! Du bist ein echter Profi!':'Wahnsinn! Du bist bereit für den Test!'}
   else if(kind==='exam'){emoji=stars===3?'🎓':stars===2?'😎':'💪';title=`${Q.ok} von ${Q.total} richtig`;msg=stars===3?'Wie im echten Test – und fast alles richtig! Super vorbereitet!':stars===2?'Richtig gut! Schau dir die Fehler unten an.':'Gut geübt! Schau dir die Fehler unten an und versuch es nochmal.'}
   else if(stars===3){emoji='🤩';title='Perfekt!';msg='Kein einziger Fehler – Wahnsinn!'}
@@ -1008,7 +1076,7 @@ function finish(lost){
   if(fresh.length)primary=[fresh[0].id,fresh[0].icon+' Weiter: '+esc(fresh[0].name)];
   if(bossNow)primary=['boss',bw.icon+' Zum Endgegner'];
   else if(goldNow)primary=['gold','🐲 Zum goldenen Gegner'];
-  else if(lost&&chestCount(m)&&isOpen(m,'chest'))primary=['chest','💎 Zur Schatzkiste'];
+  else if(lost&&chestCount(m)&&gemsLeft()&&isOpen(m,'chest'))primary=['chest','💎 Zur Schatzkiste'];
   const wrongs=kind==='exam'&&Q.wrongs.length?`<div class="wrongs"><h3>So wäre es richtig:</h3>${Q.wrongs.map(x=>`<div class="wrong"><div class="wp">${esc(x.p)}</div><div><s>${esc(x.given)}</s> → <b>${esc(x.answer)}</b></div></div>`).join('')}</div>`:'';
   app.innerHTML=`<div class="result" style="--wc:${w.color}">
     <div class="re">${emoji}</div><h2>${title}</h2><p>${msg}</p>
@@ -1066,6 +1134,8 @@ function boot(){
   if(/[#&]code=/.test(h0))try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}
   route();
   importFromLink(h0);
+  setInterval(sleepCheck,30000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sleepCheck()});
   // Server-Sicherung: beim Start, beim Wegwechseln und wenn wieder online
   if(SYNC_URL){
     setTimeout(()=>syncPush(),3000);

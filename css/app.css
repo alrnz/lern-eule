@@ -329,3 +329,18 @@ details.older .packs{margin-top:8px}
 .moved p{margin:0 0 12px;font-size:16px}
 .moved .btn{display:inline-block;text-decoration:none}
 .moved .bnote{margin:12px 0 0}
+
+/* Spiel für heute fast/ganz aufgebraucht, fertige Welten eingeklappt */
+.world .wleft{margin-top:6px;font-weight:600;font-size:14px;opacity:.9}
+details.donew .worlds{margin-top:8px}
+.pcorrect{background:#dcfce7!important}
+/* Schlafenszeit */
+.sleep{background:linear-gradient(180deg,#1e1b4b,#312e81);color:#fff;border-radius:28px;padding:26px 20px;text-align:center;margin-bottom:18px;box-shadow:0 8px 0 rgba(0,0,0,.25)}
+.sleep .moon{font-size:64px;animation:bob 3s ease-in-out infinite}
+.sleep .pets{display:flex;justify-content:center;gap:18px;margin:10px 0 14px;font-size:46px}
+.sleep .pets span{position:relative;display:inline-block;animation:bob 3.2s ease-in-out infinite;filter:saturate(.7)}
+.sleep .pets i{position:absolute;right:-14px;top:-12px;font-size:20px;font-style:normal;animation:zz 2.4s ease-in-out infinite}
+.sleep h2{font-size:24px;margin-bottom:8px}
+.sleep p{font-size:18px;line-height:1.4}
+.sleep .mini{display:block;margin-top:10px;opacity:.85}
+@keyframes zz{0%{opacity:0;transform:translate(0,6px) scale(.7)}50%{opacity:1}100%{opacity:0;transform:translate(8px,-14px) scale(1.1)}}

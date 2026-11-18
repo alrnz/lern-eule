@@ -84,8 +84,15 @@ LernApp.register({
 | `say` | Hör-Diktat (nur mit `input:true`): Text, den die Eule per Sprachausgabe vorliest; `prompt` darf leer sein |
 
 Spezial-Missionen baut die App automatisch für jedes Lernpaket: Probetest (wenn es `write` gibt),
-Fehler-Schatzkiste (falsch beantwortete Fragen, 2× richtig = 💎), Blitzrunde (60 s, Rekord), Endgegner und
-goldener Endgegner (1 Leben, nach dem Endgegner). Blitzrunde: höchstens 10 Runden pro Tag. Reservierte Welt-IDs: boss, gold, exam, chest, blitz.
+Fehler-Schatzkiste (falsch beantwortete Fragen, erst ab dem Tag danach sichtbar (`S.mistAt`), 2× richtig = 💎, nur 5 XP je Antwort,
+höchstens 5 💎 pro Tag (`GEM_MAX`, `S.gemDay`) – damit sich absichtliche Fehler nicht lohnen), Blitzrunde (60 s, Rekord), Endgegner und
+goldener Endgegner (1 Leben, nach dem Endgegner). Blitzrunde: höchstens 10 Runden pro Tag (alle Pakete zusammen).
+Jedes Spiel (Welt, Mission, Endgegner, Probetest, Schatzkiste, Blitz) höchstens 10× pro Tag und Paket (`PLAY_MAX`, gezählt beim Start,
+`S.plays`), danach „Morgen wieder 🌙“. Reservierte Welt-IDs: boss, gold, exam, chest, blitz.
+Schlafenszeit: ab 21:20 bis 6:00 zeigt die App nur „Die Tiere schlafen“ (`SLEEP_FROM`/`WAKE_AT`; eine laufende Runde darf fertig werden).
+Lokal aus, mit `?schlafen` erzwingen.
+Optional im Lernpaket: `hideDone:true` (+ `doneLabel`) klappt Welten mit 3 Sternen ein, `keep:true` an einer Welt hält sie sichtbar.
+Die Paketseite zeigt Sterne und richtige Antworten nur dieses Pakets (`S.pc`, wie `c.correct` in den Abzeichen).
 Level: bis Level 20 je 100 XP, danach jede Stufe +30 XP (`costOf` in js/app.js).
 
 Nützliche CSS-Klassen in `prompt`/`explain`: `bigword`, `chain` + `st` + `arr`, `mini`, `hl` (Markierung), `<b>`;
