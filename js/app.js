@@ -52,15 +52,32 @@ let SAVED={};
 try{SAVED=JSON.parse(localStorage.getItem(KEY)||'{}')||{};Object.assign(S,SAVED)}catch(e){}
 // Ältere Spielstände hatten noch keinen Zähler für richtige Antworten: aus den XP schätzen.
 if(typeof SAVED.correct!=='number')S.correct=Math.min(S.answered,Math.round(S.xp/14));
+/* Code für die Server-Sicherung: zwei Wörter und eine Zahl, z. B. TIGER-MOND-472 (vorne kommt zur Anzeige der Name dazu).
+   110·110·900 ≈ 11 Mio. Möglichkeiten; der Server sperrt nach vielen Fehlversuchen. */
+const CODE_WORDS=('TIGER MOND STERN APFEL BIRNE WOLKE SONNE REGEN BLITZ DRACHE ADLER BIBER DACHS ESEL FUCHS GANS HASE IGEL KATZE LAMA '+
+  'PANDA PONY RABE ROBBE SCHAF SPATZ WAL WOLF ZEBRA ELCH OTTER KOALA AFFE BIENE HUMMEL DELFIN PINGUIN EULE HAI KRAKE '+
+  'QUALLE FALKE SCHWAN ENTE HUHN KUH PFERD ZIEGE MAUS FROSCH SCHNECKE RAUPE BAUM BLATT BLUME ROSE TULPE KAKTUS NUSS KIRSCHE '+
+  'MELONE BANANE ZITRONE MANGO KIWI TOMATE BOHNE ERBSE KEKS TORTE WAFFEL BREZEL HONIG NUDEL PIZZA BALL KRONE SCHATZ ANKER SCHIFF '+
+  'BOOT RAKETE KOMET PLANET INSEL BERG WALD WIESE BACH MEER WELLE STRAND MUSCHEL PERLE FEDER KERZE LAMPE GLOCKE TROMMEL GEIGE '+
+  'HARFE PINSEL KREIDE BUCH ROLLER SCHLITTEN IGLU SCHNEE NEBEL WIND').split(' ');
+const CODE_RE=/^[A-Z]{2,12}-[A-Z]{2,12}-[0-9]{3}$/;
+function rndInt(n){
+  try{if(typeof crypto!=='undefined'&&crypto.getRandomValues){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}}catch(e){}
+  return Math.floor(Math.random()*n);
+}
+function newCode(){return CODE_WORDS[rndInt(CODE_WORDS.length)]+'-'+CODE_WORDS[rndInt(CODE_WORDS.length)]+'-'+(100+rndInt(900))}
 /** Fehlende oder kaputte Felder ergänzen (ältere Spielstände, geladene Sicherungen). */
 function fixState(){
   ['xp','answered','correct','bestCombo','gems'].forEach(k=>{if(typeof S[k]!=='number'||!(S[k]>=0))S[k]=0});
   ['stars','mistakes','blitz','pc'].forEach(k=>{if(!S[k]||typeof S[k]!=='object'||Array.isArray(S[k]))S[k]={}}); // pc: richtige Antworten je Lernpaket
   ['badges','days','seen','fullDays'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]}); // seen: angekündigte Freischaltungen, fullDays: Tage mit Tages-Truhe
   if(typeof S.name!=='string')S.name='';
+  if(!S.sync||typeof S.sync!=='object'||Array.isArray(S.sync))S.sync={}; // Server-Sicherung: id = Code ohne Namen
+  if(!CODE_RE.test(S.sync.id||''))S.sync={id:newCode(),dirty:1};
 }
 fixState();
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function store(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){S.sync.dirty=1;store();syncLater()}
 const starKey=(m,w)=>m.id+'/'+w.id;
 const getStars=(m,w)=>S.stars[starKey(m,w)]||0;
 const mist=m=>S.mistakes[m.id]||(S.mistakes[m.id]={});
@@ -541,11 +558,14 @@ function backupAsk(){
 function backupMenu(){
   modal(`<div style="text-align:center"><h2>💾 Spielstand</h2>
   <p style="font-size:16px;margin-bottom:6px">${S.name?esc(S.name)+': ':''}${stateSummary(S)}</p>
-  <p class="bnote">Die Sicherung ist eine kleine Datei. Leg sie z. B. in iCloud Drive, „Dateien“ oder schick sie dir per Mail/AirDrop.</p>
-  <div class="bmenu"><button class="btn primary" onclick="LernApp._backupSave(this)">💾 Spielstand sichern</button>
-  <button class="btn" onclick="LernApp._backupPick()">📂 Sicherung laden</button>
+  ${SYNC_URL?syncBox():''}
+  <p class="bnote">${SYNC_URL?'Zusätzlich als Datei sichern':'Die Sicherung ist eine kleine Datei'}: z. B. in iCloud Drive, „Dateien“ ablegen oder per Mail/AirDrop schicken.</p>
+  <div class="bmenu">${SYNC_URL?'<button class="btn" onclick="LernApp._codeAsk()">🔑 Code eingeben (anderes Gerät)</button>':''}
+  <button class="btn primary" onclick="LernApp._backupSave(this)">💾 Spielstand als Datei sichern</button>
+  <button class="btn" onclick="LernApp._backupPick()">📂 Datei laden</button>
   <button class="btn bclose" onclick="this.closest('.modal').remove()">Schließen</button></div>
   <input type="file" id="bfile" accept=".json,application/json" style="display:none" onchange="LernApp._backupLoad(this)"></div>`,true);
+  if(SYNC_URL)syncPush().then(syncBoxUpdate);
 }
 function backupSave(btn){
   const d=dkey(today0()),name='lern-eule-'+(S.name?S.name.replace(/[^A-Za-z0-9ÄÖÜäöüß-]/g,'')+'-':'')+d+'.json';
@@ -580,13 +600,102 @@ function backupLoad(inp){
       <p style="font-size:16px">Der jetzige Spielstand wird ersetzt:<br>${stateSummary(S)}</p>
       <div class="rbtns"><button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button><button class="btn primary" id="bgo">Ja, laden</button></div></div>`);
     m.querySelector('#bgo').onclick=()=>{
-      S=Object.assign(FRESH(),b.state);fixState();save();
+      const sy=S.sync;S=Object.assign(FRESH(),b.state);S.sync=sy;fixState();save();
+      syncPush(true); // bewusst geladen: auch auf dem Server ersetzen
       document.querySelectorAll('.modal').forEach(x=>x.remove());route();
       toast('📂','Sicherung geladen!');sfx('win');
     };
   };
   r.onerror=()=>toast('⚠️','Die Datei konnte nicht gelesen werden.');
   r.readAsText(f);
+}
+
+/* ================= Server-Sicherung ================= */
+// Adresse von server/backup.php auf dem Hosting. Leer = aus (dann gibt es nur die Datei-Sicherung).
+const SYNC_URL=(typeof location!=='undefined'&&(location.hostname==='localhost'||location.hostname==='127.0.0.1'))
+  ?'http://localhost:8767/backup.php':'https://lern-eule.lrnz.net/backup.php';
+var SY={timer:null,busy:false,err:''};
+const umlautUp=t=>String(t||'').toUpperCase().replace(/Ä/g,'AE').replace(/Ö/g,'OE').replace(/Ü/g,'UE').replace(/ß/g,'SS');
+/** Code zum Anzeigen: Name vorne dran, z. B. MIA-TIGER-MOND-472. Der Name zählt beim Eingeben nicht mit. */
+function showCode(){const n=umlautUp(S.name).replace(/[^A-Z]/g,'').slice(0,10);return (n?n+'-':'')+S.sync.id}
+function parseCode(t){const p=umlautUp(t).split(/[^A-Z0-9]+/).filter(Boolean);if(p.length<3)return null;const c=p.slice(-3).join('-');return CODE_RE.test(c)?c:null}
+function syncReq(body){
+  // text/plain: keine CORS-Vorabanfrage nötig
+  return fetch(SYNC_URL,{method:'POST',body,headers:{'Content-Type':'text/plain'},cache:'no-store',keepalive:body.length<60000})
+    .then(r=>r.json().catch(()=>({})).then(j=>({s:r.status,j})));
+}
+/** Nach Änderungen höchstens einmal pro Minute hochladen */
+function syncLater(){if(SYNC_URL&&!SY.timer)SY.timer=setTimeout(()=>{SY.timer=null;syncPush()},60000)}
+function syncPush(force){
+  const sy=S.sync;
+  if(!SYNC_URL||SY.busy||(!sy.dirty&&!force)||(sy.conflict&&!force))return Promise.resolve();
+  if(!force&&!(S.xp>0||S.answered>0))return Promise.resolve(); // noch nichts geübt: nichts anlegen
+  if(navigator.onLine===false){SY.err='offline';return Promise.resolve()}
+  const st=JSON.parse(JSON.stringify(S));st.sync={id:sy.id};
+  SY.busy=true;sy.dirty=0;
+  return syncReq(JSON.stringify({action:'put',id:sy.id,base:sy.base||'',force:!!force,state:st})).then(x=>{
+    if(x.s===200&&x.j.ok){sy.base=x.j.rev;sy.at=x.j.saved;delete sy.conflict;SY.err=''}
+    else if(x.s===409){sy.conflict={saved:x.j.saved,xp:x.j.xp};sy.dirty=1;SY.err=''}
+    else{sy.dirty=1;SY.err='server'}
+  },()=>{sy.dirty=1;SY.err='offline'}).then(()=>{SY.busy=false;store()});
+}
+const fmtWhen=iso=>{const d=new Date(iso);return isNaN(d)?'?':d.toLocaleString('de-DE',{weekday:'short',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})+' Uhr'};
+function syncStatus(){
+  const sy=S.sync;
+  if(sy.conflict)return `⚠️ Auf dem Server liegt ein Stand von einem anderen Gerät mit mehr XP (${fmtWhen(sy.conflict.saved)}, Level ${levelInfo(sy.conflict.xp||0).lvl}). Dieser Stand wird erst wieder gesichert, wenn du entscheidest:
+    <span class="bbtns"><button class="btn" onclick="LernApp._codeLoad('${sy.id}')">☁️ Server-Stand laden</button><button class="btn" onclick="LernApp._syncForce(this)">⬆️ Diesen Stand behalten</button></span>`;
+  let t=sy.at?'✅ Automatisch gesichert: '+fmtWhen(sy.at):'Wird automatisch gesichert, sobald geübt wurde.';
+  if(sy.dirty&&SY.err==='offline')t+=' · gerade offline, wird nachgeholt';
+  else if(sy.dirty&&SY.err==='server')t+=' · Server gerade nicht erreichbar';
+  return t;
+}
+function syncBox(){
+  return `<div class="bsync"><p class="bstat">${syncStatus()}</p>
+  <p>Dein Code: <b class="bcode">${esc(showCode())}</b> <button class="btn bcopy" onclick="LernApp._copyCode(this)">📋</button></p>
+  <p class="bnote" style="margin:4px 0 0">Auf einem anderen Gerät weiterspielen: dort „💾 Sichern / Laden“ → „🔑 Code eingeben“.</p></div>`;
+}
+function syncBoxUpdate(){const e=document.querySelector('.bstat');if(e)e.innerHTML=syncStatus()}
+function codeAsk(){
+  const m=modal(`<div style="text-align:center"><h2>🔑 Code eingeben</h2>
+  <p style="font-size:16px;margin-bottom:10px">Den Code findest du auf dem anderen Gerät unter „💾 Sichern / Laden“.</p>
+  <form class="wform" style="justify-content:center;margin-bottom:8px" onsubmit="return false"><input id="ccode" type="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="z. B. MIA-TIGER-MOND-472"></form>
+  <p class="cerr" style="color:var(--bad,#dc2626);min-height:22px"></p>
+  <div class="rbtns"><button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button><button class="btn primary" id="cgo">Weiter</button></div></div>`);
+  const inp=m.querySelector('#ccode'),er=m.querySelector('.cerr'),go=()=>{
+    const c=parseCode(inp.value);
+    if(!c){er.textContent='Der Code sieht nicht richtig aus. Er endet mit Wort-Wort-Zahl.';return}
+    er.textContent='Suche …';
+    codeLoad(c,null,m);
+  };
+  m.querySelector('#cgo').onclick=go;
+  m.querySelector('form').onsubmit=e=>{e.preventDefault();go();return false};
+  setTimeout(()=>inp.focus(),50);
+}
+/** Stand zum Code vom Server holen und nach Rückfrage laden */
+function codeLoad(id,day,from){
+  const fail=t=>{const e=from&&from.querySelector('.cerr');if(e)e.textContent=t;else toast('⚠️',t)};
+  syncReq(JSON.stringify({action:'get',id,day:day||''})).then(x=>{
+    if(x.s===404&&!day)return fail('Zu diesem Code gibt es keine Sicherung.');
+    if(x.s===429)return fail('Zu viele Versuche. Bitte in einer Stunde nochmal.');
+    if(x.s!==200||!x.j.ok||!x.j.state)return fail('Das hat nicht geklappt. Bitte später nochmal.');
+    if(from)from.remove();
+    const j=x.j,same=id===S.sync.id;
+    const days=(j.days||[]).filter(d=>d.saved!==j.saved).slice(0,10);
+    const m=modal(`<div style="text-align:center"><h2>☁️ Stand vom Server laden?</h2>
+      <p style="font-size:16px;margin-bottom:10px"><b>${fmtWhen(j.saved)}</b>${j.state.name?' ('+esc(j.state.name)+')':''}<br>${stateSummary(j.state)}</p>
+      ${days.length?`<p class="bnote" style="margin:0 0 10px">Ältere Stände: ${days.map(d=>`<a href="#" class="bday" data-day="${d.day}">${new Date(d.saved).toLocaleDateString('de-DE',{day:'numeric',month:'numeric'})} (Level ${levelInfo(d.xp).lvl})</a>`).join(' · ')}</p>`:''}
+      <p style="font-size:16px">Der jetzige Spielstand ${same?'':'auf diesem Gerät '}wird ersetzt:<br>${stateSummary(S)}</p>
+      <div class="rbtns"><button class="btn" onclick="this.closest('.modal').remove()">Abbrechen</button><button class="btn primary" id="sgo">Ja, laden</button></div></div>`);
+    m.querySelectorAll('.bday').forEach(a=>a.onclick=e=>{e.preventDefault();m.remove();codeLoad(id,a.dataset.day)});
+    m.querySelector('#sgo').onclick=()=>{
+      S=Object.assign(FRESH(),j.state);
+      // Älterer Tag gewählt: beim nächsten Sichern bewusst den neuesten Stand ersetzen
+      S.sync={id,base:j.head,at:j.saved,dirty:j.rev!==j.head?1:0};
+      fixState();store();
+      document.querySelectorAll('.modal').forEach(x=>x.remove());route();
+      toast('☁️','Spielstand geladen!');sfx('win');
+    };
+  },()=>fail('Keine Verbindung zum Server. Bist du online?'));
 }
 
 function resetAsk(){
@@ -901,12 +1010,16 @@ Object.assign(LernApp,{
   go,start,
   _backupAsk:backupAsk,_backupSave:backupSave,_backupLoad:backupLoad,
   _backupPick(){const i=$('#bfile');if(i)i.click()},
+  _codeAsk:codeAsk,_codeLoad(id){document.querySelectorAll('.modal').forEach(x=>x.remove());codeLoad(id)},
+  _syncForce(btn){btn.disabled=true;syncPush(true).then(syncBoxUpdate)},
+  _copyCode(btn){const c=showCode(),ok=()=>{btn.textContent='✅'};
+    try{navigator.clipboard.writeText(c).then(ok,()=>prompt('Code:',c))}catch(e){prompt('Code:',c)}},
   _answer:answer,_submit:submit,_tap:tap,_spotCheck:spotCheck,_say:say,_next:next,_cheat:cheat,_resetAsk:resetAsk,
   _quit(){stopTimer();Q=null;route()},
   _locked(msg){toast('🔒',msg||'Noch gesperrt!')},
   _setName(v){S.name=v.trim();save();route()},
   _toggleSound(){S.sound=!S.sound;save();route()},
-  _reset(btn){S=Object.assign(FRESH(),{name:S.name,sound:S.sound});save();btn.closest('.modal').remove();route()},
+  _reset(btn){S=Object.assign(FRESH(),{name:S.name,sound:S.sound,sync:S.sync});save();btn.closest('.modal').remove();route()},
   /** nur für tools/check.js */
   _internals:{pool,writePool,byKey,findWorld,starWorlds,checkPackBadges,cur:()=>Q}
 });
@@ -916,6 +1029,12 @@ function boot(){
   // Spielstände von vor der Tages-Serie: es wurde heute schon geübt (App ging erst heute online).
   if(!Array.isArray(SAVED.days)&&S.answered>0&&S.days.length===0){S.days=[dkey(today0())];save()}
   route();
+  // Server-Sicherung: beim Start, beim Wegwechseln und wenn wieder online
+  if(SYNC_URL){
+    setTimeout(()=>syncPush(),3000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')syncPush()});
+    addEventListener('online',()=>syncPush());
+  }
   // Speicher als dauerhaft markieren, damit der Browser den Spielstand nicht von selbst wegräumt
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}catch(e){}
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){

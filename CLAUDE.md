@@ -136,6 +136,21 @@ mit `{app:'lern-eule',v:1,saved,state}` (iPhone/iPad: Teilen-Menü, sonst Downlo
 nach Rückfrage; `fixState()` in js/app.js ergänzt fehlende Felder. Neue Felder im Spielstand dort mit Standardwert eintragen.
 Beim Start bittet die App um dauerhaften Speicher (`navigator.storage.persist()`).
 
+### Server-Sicherung (`server/backup.php`)
+Jeder Spielstand bekommt beim ersten Start einen Code `WORT-WORT-123` (`S.sync.id`, Wörter in `CODE_WORDS`);
+angezeigt wird er mit Namen davor (`MIA-TIGER-MOND-472`), beim Eingeben zählen nur die letzten drei Teile.
+Die App lädt den Stand automatisch hoch (beim Start, höchstens 1×/Minute nach Änderungen, beim Wegwechseln, wenn wieder online;
+erst wenn geübt wurde). Anderes Gerät: „💾 Sichern / Laden“ → „🔑 Code eingeben“ zeigt den Stand und ältere Tage.
+Hat ein anderes Gerät inzwischen mehr XP gespeichert, antwortet der Server 409; die App sichert dann nicht weiter,
+bis unter „Sichern / Laden“ entschieden wird (Server-Stand laden / diesen behalten).
+- `SYNC_URL` in js/app.js: Adresse des Skripts (leer = aus, nur Datei-Sicherung). Lokal: `php -S localhost:8767 -t server`.
+- Server: https://lern-eule.lrnz.net/backup.php (Mittwald, p717054, Web-Ordner `html/`); die App selbst bleibt auf GitHub Pages.
+  Deploy: GitHub Action `.github/workflows/deploy-server.yml` lädt bei Push auf `main` (nur wenn `server/` sich ändert) `backup.php`
+  per SSH hoch, Secret `DEPLOY_SSH_KEY` (Schlüssel `~/.ssh/lern-eule-deploy`). Daten liegen in `files/lern-eule-daten/` (nicht öffentlich).
+  Oben im Skript: erlaubte Origins, `DATA_DIR`,
+  30 Tage je Code, Sperre nach 20 unbekannten Codes pro Stunde und IP. Alles per POST, Code steht nie in der URL.
+- `S.sync` wird mit `store()` gespeichert; `save()` markiert den Stand als geändert und plant das Hochladen.
+
 ## Deploy
 Live: https://alrnz.github.io/lern-eule/ (GitHub Pages aus `main`, Repo `alrnz/lern-eule`, öffentlich).
 Die Adresse nicht wechseln: localStorage hängt an der Domain, sonst ist der Fortschritt weg.

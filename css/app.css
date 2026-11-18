@@ -317,3 +317,10 @@ details.older .packs{margin-top:8px}
 .bmenu .btn.primary{background:linear-gradient(180deg,#facc15,#f59e0b)}
 .bmenu .bclose{background:none;box-shadow:none;color:var(--muted)}
 .bok{text-align:center;margin-bottom:12px;color:var(--good-d);font-weight:700;font-size:18px}
+.bsync{background:#f0f9ff;border-radius:14px;padding:10px 12px;margin:8px 0 4px;font-size:15px;text-align:left}
+.bsync p{margin:4px 0}
+.bcode{font-size:19px;letter-spacing:.5px;white-space:nowrap}
+.bsync .bcopy{padding:2px 10px;min-height:0;font-size:16px;vertical-align:middle}
+.bbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.bbtns .btn{font-size:14px;padding:6px 10px}
+.bday{color:inherit}
