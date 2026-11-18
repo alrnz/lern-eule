@@ -55,6 +55,7 @@ LernApp.register({
   // optional: Zusatz-Missionen (wie Welten mit Sternen und Schatzkiste, aber nicht im Endgegner/Blitz und
   // nicht nötig für den Endgegner). Stehen unter „Spezial-Missionen“, per unlock[id] zeitgesteuert.
   missions:[{id:'detektiv', name:'Fehler-Detektiv', icon:'🕵️', color:'#334155', color2:'#64748b', count:8, topic:'…', cats:()=>[[…]]}],
+  missionAfter:{blitz:'reihe6', exam:'reihe8'},  // optional: Spezial-Missionen (chest, blitz, exam, gold) erst ab 2 Sternen in dieser Welt
   unlock:{chest:'2026-12-01', blitz:'2026-12-01', gold:'2026-12-02', exam:'2026-12-03', detektiv:'2026-12-02'}, // optional: Spezial-Missionen, eigene missions-IDs und Welt-IDs erst ab Datum (vorher „Geheime Mission/Welt“). Lokal ist alles offen, außer mit ?live in der Adresse
   mascot:'🦉',                     // optional: Maskottchen auf der Paketseite und in den Rückmeldungen (Emoji oder SVG-HTML)
   badgeTitle:'Maulwurf-Abzeichen', // optional: Überschrift der eigenen Abzeichen
@@ -116,7 +117,8 @@ sie nicht. Abzeichen: truhe1, streak3/5/10/20. Gespeichert in `S.dd` (heute) und
 Einmaleins nach der Karteikarten-Idee von Ina („Hallo Lernen“): leicht anfangen, in Minischritten steigern.
 Affe Kiki klettert Ast für Ast: 10er → 2er → 5er → 4er → 3er → 6er → 9er → 8er → 7er, oben die Mix-Box
 (36 Karten 2·2 … 9·9 ohne Tauschaufgaben). Jeder Ast öffnet sich erst mit 2 Sternen im Ast davor (`after`).
-Ab Ast 2 kommen Wiederholungskarten aus den schon geschafften Reihen dazu. `REIHEN` nie umsortieren (Schatzkiste).
+Ab Ast 2 kommen Wiederholungskarten aus den schon geschafften Reihen dazu. Blitzrunde ab 2 Sternen im 2er-Ast,
+Probetest ab 2 Sternen im 5er-Ast (`missionAfter`). `REIHEN` nie umsortieren (Schatzkiste).
 
 ### Lernwörter (`modules/deutsch-lernwoerter.js`)
 Jede Woche ~10 Lernwörter aus der Schule. Neue Woche = Eintrag **oben** in `WOCHEN` (`from` = Montag der Woche,

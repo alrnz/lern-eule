@@ -28,6 +28,7 @@ ctx.LernApp.modules.forEach(m=>{
   const all=m.worlds.concat(m.missions||[]);
   if(m.closed)m.closed.forEach(k=>{if(['chest','blitz','gold','exam'].concat(all.map(x=>x.id)).indexOf(k)<0)err(m,{id:'-'},'closed: unbekannte Welt/Mission '+k)});
   if(m.unlock)Object.keys(m.unlock).forEach(k=>{if(['chest','blitz','gold','exam'].concat(all.map(x=>x.id)).indexOf(k)<0)err(m,{id:'-'},'unlock: unbekannte Welt/Mission '+k);if(!/^\d{4}-\d{2}-\d{2}$/.test(m.unlock[k]))err(m,{id:'-'},'unlock-Datum JJJJ-MM-TT: '+k)});
+  if(m.missionAfter)Object.keys(m.missionAfter).forEach(k=>{if(['chest','blitz','gold','exam'].indexOf(k)<0)err(m,{id:'-'},'missionAfter: nur chest, blitz, gold, exam: '+k);if(all.map(x=>x.id).indexOf(m.missionAfter[k])<0)err(m,{id:'-'},'missionAfter: unbekannte Welt '+m.missionAfter[k])});
   if(!m.badges||!m.badges.length)err(m,{id:'-'},'jedes Lernpaket braucht eigene Abzeichen (badges)');
   // test(c) einmal mit Beispielwerten aufrufen: findet Tippfehler in Welt-IDs (starsIn) und Programmfehler
   if(m.badges){const wids=all.map(w=>w.id).concat(['boss','gold','exam']);

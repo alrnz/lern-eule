@@ -105,6 +105,7 @@ LernApp.register({
   icon:'🐵', color:'#a16207', mascot:'🐵', daily:true, dailyName:'Affen-Box',
   hello:'Ich bin Kiki! Wir fangen ganz unten an – das kannst du schon. Mit <b>2 Sternen</b> geht der nächste Ast auf. 🍌',
   questionsPerWorld:10, examCount:15,
+  missionAfter:{blitz:'r2',exam:'r5'}, // Blitzrunde ab 2 Sternen im 2er-Ast, Probetest ab 2 Sternen im 5er-Ast
   worlds,
   boss:{name:'Gorilla Gustav',icon:'🦍',count:15,lives:3,goldName:'Goldener Gorilla'},
   badgeTitle:'Affen-Abzeichen',

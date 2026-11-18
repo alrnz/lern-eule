@@ -98,9 +98,13 @@ const isClosed=(m,id)=>!!(m.closed&&m.closed.indexOf(id)>=0);
 const isOpen=(m,id)=>{const d=openDate(m,id);return LOCAL||(!isClosed(m,id)&&(!d||daysUntil(d)<=0))};
 /* Freischalten nach Fortschritt: w.after='welt-id' → erst offen ab w.afterStars (Standard 2) Sternen in jener Welt.
  * Lokal ist auch das offen (mit ?live wie online). */
+// Spezial-Missionen (chest, blitz, exam, gold) per m.missionAfter={exam:'welt-id',…}.
+const afterOf=(m,w)=>w.after||(m.missionAfter&&m.missionAfter[w.id])||null;
 const needOf=w=>w.afterStars||2;
-const isReady=(m,w)=>LOCAL||!w.after||(S.stars[m.id+'/'+w.after]||0)>=needOf(w);
-function afterMsg(m,w){const p=allWorlds(m).find(x=>x.id===w.after);return `Hol dir erst ${needOf(w)} Sterne in „${p?p.name:w.after}“, dann geht es hier weiter!`}
+const isReady=(m,w)=>{const a=afterOf(m,w);return LOCAL||!a||(S.stars[m.id+'/'+a]||0)>=needOf(w)};
+function afterMsg(m,w){const a=afterOf(m,w),p=allWorlds(m).find(x=>x.id===a);return `Hol dir erst ${needOf(w)} Sterne in „${p?p.name:a}“, dann geht es hier weiter!`}
+/** Alles, was nach Fortschritt aufgeht: Welten, Missionen und Spezial-Missionen */
+const gated=m=>allWorlds(m).concat([chestW(),blitzW(),m.boss?goldW(m):null,hasWrite(m)?examW(m):null]).filter(x=>x&&afterOf(m,x));
 /** Welten können per m.unlock[welt-id] auch erst ab einem Datum offen sein, per w.after erst nach Fortschritt. */
 const openWorlds=m=>m.worlds.filter(w=>isOpen(m,w.id)&&isReady(m,w));
 function whenText(d){
@@ -459,7 +463,7 @@ function worldCard(m,w,i,locked,lockMsg){
   return `<button class="world ${w.kind||''} ${w.gold?'goldw':''} ${locked?'locked':''}" style="--wc:${w.color};--wc2:${w.color2||w.color};animation-delay:${i*.06}s" onclick="${click}">
     <div class="wi">${locked?'🔒':w.icon}</div><div class="wn">${esc(w.name)}</div><div class="wt">${w.topic||''}</div>
     ${hasStars?`<div class="ws">${[1,2,3].map(n=>`<span class="${n<=st?'':'off'}">⭐</span>`).join('')}</div>`:extra}
-    <div class="play">${locked&&w.kind==='blitz'?'Morgen wieder 🌙':locked?'Gesperrt':empty?'Leer':st?'Nochmal ▶':'Los ▶'}</div></button>`;
+    <div class="play">${locked&&w.kind==='blitz'&&!blitzLeft()?'Morgen wieder 🌙':locked?'Gesperrt':empty?'Leer':st?'Nochmal ▶':'Los ▶'}</div></button>`;
 }
 function mysteryCard(m,w,i){
   const d=openDate(m,w.id),t=d&&!isClosed(m,w.id)?whenText(d):'bald',what=m.worlds.indexOf(w)>=0?['Welt','Geheime Welt']:['Mission','Geheime Mission'];
@@ -830,7 +834,7 @@ function finish(lost){
     Q=null;scrollTo(0,0);return;
   }
   /* ---- Welten, Endgegner, Probetest ---- */
-  const readyBefore=allWorlds(m).filter(x=>x.after&&isReady(m,x)).map(x=>x.id);
+  const readyBefore=gated(m).filter(x=>isReady(m,x)).map(x=>x.id);
   let stars;
   if(kind==='boss')stars=lost?0:Math.max(1,Math.round(Q.hearts/Q.lives*3));
   else if(kind==='exam'){const p=Q.ok/Q.total;stars=p>=.9?3:p>=.75?2:1}
@@ -857,8 +861,8 @@ function finish(lost){
   const goldNow=kind==='boss'&&!w.gold&&!lost&&!S.stars[m.id+'/gold']&&isOpen(m,'gold');
   const bw=m.boss?bossW(m):null;
   // Durch diese Runde neu freigeschaltet (w.after) – oder: was mit mehr Sternen aufgehen würde
-  const fresh=allWorlds(m).filter(x=>x.after&&isOpen(m,x.id)&&isReady(m,x)&&readyBefore.indexOf(x.id)<0);
-  const nextW=allWorlds(m).find(x=>x.after===w.id&&isOpen(m,x.id)&&!isReady(m,x));
+  const fresh=gated(m).filter(x=>isOpen(m,x.id)&&isReady(m,x)&&readyBefore.indexOf(x.id)<0);
+  const nextW=gated(m).filter(x=>afterOf(m,x)===w.id&&isOpen(m,x.id)&&!isReady(m,x));
   let primary=[w.id,'🔁 Nochmal'];
   if(fresh.length)primary=[fresh[0].id,fresh[0].icon+' Weiter: '+esc(fresh[0].name)];
   if(bossNow)primary=['boss',bw.icon+' Zum Endgegner'];
@@ -872,7 +876,7 @@ function finish(lost){
     ${wrongs}${badgesNew()}
     ${bossNow?`<p class="awake">${bw.icon} ${esc(bw.name)} ist erwacht! Traust du dich?</p>`:''}
     ${fresh.length?`<p class="awake fresh">🎁 Neu freigeschaltet: ${fresh.map(x=>x.icon+' '+esc(x.name)).join(', ')}!</p>`:''}
-    ${nextW&&!lost?`<p class="mini nextw">🔒 Mit ${needOf(nextW)} Sternen öffnet sich ${nextW.icon} ${esc(nextW.name)}.</p>`:''}
+    ${nextW.length&&!lost?`<p class="mini nextw">🔒 Mit ${needOf(nextW[0])} Sternen ${nextW.length>1?'öffnen sich':'öffnet sich'} ${nextW.map(x=>x.icon+' '+esc(x.name)).join(' und ')}.</p>`:''}
     ${goldNow?`<p class="awake gold">🐲 Ein goldener Drache ist aufgetaucht … nur 1 Leben!</p>`:''}
     ${resultBtns(m,primary[0],primary[1])}</div>`;
   [1,2,3].forEach(n=>{if(n<=stars)setTimeout(()=>{sfx('good');const s=document.querySelectorAll('.star')[n-1];if(s){const r=s.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,25,.9)}},500+n*300)});
