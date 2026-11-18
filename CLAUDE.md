@@ -152,9 +152,14 @@ bis unter „Sichern / Laden“ entschieden wird (Server-Stand laden / diesen be
 - `S.sync` wird mit `store()` gespeichert; `save()` markiert den Stand als geändert und plant das Hochladen.
 
 ## Deploy
-Live: https://alrnz.github.io/lern-eule/ (GitHub Pages aus `main`, Repo `alrnz/lern-eule`, öffentlich).
-Die Adresse nicht wechseln: localStorage hängt an der Domain, sonst ist der Fortschritt weg.
-Deploy = committen und `main` pushen; Pages ist nach ca. 1 Minute aktuell.
+Live: **https://lern-eule.lrnz.net/** (Mittwald, SSH `p717054@p717054.mittwaldserver.info`, Web-Ordner `html/`).
+Deploy = committen und `main` pushen. Die GitHub Action `.github/workflows/deploy.yml` prüft (`php -l`, `tools/check.js`),
+lädt die App plus `server/backup.php` per rsync nach `html/` (lässt `cgi-bin/`, `stats/` in Ruhe) und testet live.
+Secret `DEPLOY_SSH_KEY` = `~/.ssh/lern-eule-deploy`. Die Adresse nicht mehr wechseln: localStorage hängt an der Domain.
+
+Alte Adresse https://alrnz.github.io/lern-eule/ (GitHub Pages aus `main`, Repo `alrnz/lern-eule`) läuft parallel weiter und zeigt
+oben einen Umzugs-Hinweis (`movedBanner`, lokal testen mit `?umzug`). Der Link trägt `#code=…&xp=…`; die neue Adresse
+übernimmt damit den Spielstand vom Server (`importFromLink`: ohne Rückfrage, wenn dort noch nicht geübt wurde, sonst mit).
 Immer `/usr/bin/git` verwenden: das ältere `/usr/local/bin/git` kann das eingestellte SSH-Signieren nicht.
 
 ## Testen

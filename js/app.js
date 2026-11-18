@@ -365,6 +365,7 @@ function renderHome(){
   const greet=next?`${countdownText(next)} <br><small>(${esc(next.title)} · ${fmtDate(next.date)})</small>`:'Wähle ein Lernpaket und sammle Sterne!';
   app.innerHTML=`
   <div class="title">Lern-Eule<small>Deine Lern-App</small></div>
+  ${OLD_HOST?movedBanner():''}
   <div class="hero"><div class="mascot">🦉</div><div class="bubble">Hallo ${S.name?`<b>${esc(S.name)}</b>`:'Lern-Held'}! ${greet}</div></div>
   <div class="namebar">Ich heiße <input value="${esc(S.name)}" placeholder="Dein Name" maxlength="16" onchange="LernApp._setName(this.value)"></div>
   ${statsHTML()}
@@ -615,6 +616,37 @@ function backupLoad(inp){
 const SYNC_URL=(typeof location!=='undefined'&&(location.hostname==='localhost'||location.hostname==='127.0.0.1'))
   ?'http://localhost:8767/backup.php':'https://lern-eule.lrnz.net/backup.php';
 var SY={timer:null,busy:false,err:''};
+/* ================= Umzug nach lern-eule.lrnz.net ================= */
+// Die alte Adresse (GitHub Pages) zeigt einen Hinweis mit Link; der Link trägt den Code (#code=…&xp=…),
+// die neue Adresse übernimmt damit den Spielstand vom Server.
+const NEW_HOME='https://lern-eule.lrnz.net/';
+const OLD_HOST=typeof location!=='undefined'&&(location.hostname==='alrnz.github.io'||
+  (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&/umzug/.test(location.search))); // lokal testen: ?umzug
+function movedBanner(){
+  const has=S.xp>0||S.answered>0,url=NEW_HOME+(has?'#code='+S.sync.id+'&xp='+Math.floor(S.xp):'');
+  return `<div class="moved"><h3>🏡 Die Lern-Eule ist umgezogen!</h3>
+  <p>${has?'Dein Spielstand zieht mit: Sterne, Level und Abzeichen sind gleich wieder da.':'Ab jetzt wohnt sie unter einer neuen Adresse.'}</p>
+  <a class="btn primary" href="${url}" target="_blank" rel="noopener" onclick="LernApp._moveGo()">Zur neuen Lern-Eule ➜</a>
+  <p class="bnote">Für Eltern: Die neue Seite öffnet sich in Safari. Dort im Teilen-Menü „Zum Home-Bildschirm“ wählen und danach die alte Eule vom Home-Bildschirm löschen.</p></div>`;
+}
+/** Neue Adresse mit #code=…: Spielstand vom Server übernehmen. Wartet kurz, falls die alte App gerade noch hochlädt. */
+function importFromLink(h){
+  const m=/[#&]code=([A-Za-z0-9-]+)(?:&xp=(\d+))?/.exec(h);
+  if(!m)return;
+  const id=parseCode(m[1]),want=+(m[2]||0);
+  if(!id||!SYNC_URL||id===S.sync.id)return;
+  const fresh=!(S.xp>0||S.answered>0);
+  let tries=0;
+  const attempt=()=>syncReq(JSON.stringify({action:'get',id})).then(x=>{
+    const ok=x.s===200&&x.j.ok&&x.j.state;
+    if((!ok||(+x.j.state.xp||0)<want)&&++tries<6)return void setTimeout(attempt,1500);
+    if(!ok)return toast('⚠️','Spielstand nicht gefunden. Unter „Sichern / Laden“ den Code eingeben.');
+    if(!fresh)return codeLoad(id); // hier wurde schon geübt: nachfragen
+    S=Object.assign(FRESH(),x.j.state);S.sync={id,base:x.j.head,at:x.j.saved,dirty:0};
+    fixState();store();route();toast('🏡','Spielstand übernommen! Willkommen im neuen Zuhause.');sfx('win');
+  },()=>{if(++tries<6)setTimeout(attempt,1500)});
+  attempt();
+}
 const umlautUp=t=>String(t||'').toUpperCase().replace(/Ä/g,'AE').replace(/Ö/g,'OE').replace(/Ü/g,'UE').replace(/ß/g,'SS');
 /** Code zum Anzeigen: Name vorne dran, z. B. MIA-TIGER-MOND-472. Der Name zählt beim Eingeben nicht mit. */
 function showCode(){const n=umlautUp(S.name).replace(/[^A-Z]/g,'').slice(0,10);return (n?n+'-':'')+S.sync.id}
@@ -1010,6 +1042,7 @@ Object.assign(LernApp,{
   go,start,
   _backupAsk:backupAsk,_backupSave:backupSave,_backupLoad:backupLoad,
   _backupPick(){const i=$('#bfile');if(i)i.click()},
+  _moveGo(){S.sync.dirty=1;syncPush()},
   _codeAsk:codeAsk,_codeLoad(id){document.querySelectorAll('.modal').forEach(x=>x.remove());codeLoad(id)},
   _syncForce(btn){btn.disabled=true;syncPush(true).then(syncBoxUpdate)},
   _copyCode(btn){const c=showCode(),ok=()=>{btn.textContent='✅'};
@@ -1028,7 +1061,11 @@ Object.assign(LernApp,{
 function boot(){
   // Spielstände von vor der Tages-Serie: es wurde heute schon geübt (App ging erst heute online).
   if(!Array.isArray(SAVED.days)&&S.answered>0&&S.days.length===0){S.days=[dkey(today0())];save()}
+  // Umzugs-Link (#code=…): Adresse aufräumen, dann Spielstand übernehmen
+  const h0=location.hash||'';
+  if(/[#&]code=/.test(h0))try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}
   route();
+  importFromLink(h0);
   // Server-Sicherung: beim Start, beim Wegwechseln und wenn wieder online
   if(SYNC_URL){
     setTimeout(()=>syncPush(),3000);

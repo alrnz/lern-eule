@@ -1,0 +1,46 @@
+# Deploy der ganzen App nach https://lern-eule.lrnz.net (Mittwald, Ordner html/), inkl. backup.php.
+# Gespeicherte Spielstände (files/lern-eule-daten) und Mittwald-Ordner (cgi-bin, stats) werden nicht angefasst.
+# Secret DEPLOY_SSH_KEY: privater Teil von ~/.ssh/lern-eule-deploy (öffentlicher Teil in ~/.ssh/authorized_keys auf dem Server).
+# Die alte Adresse alrnz.github.io/lern-eule läuft parallel weiter über GitHub Pages (Umzugs-Hinweis in der App).
+name: Deploy lern-eule.lrnz.net
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['CLAUDE.md', 'tools/**']
+  workflow_dispatch:
+concurrency: deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HOST: p717054.mittwaldserver.info
+      USER: p717054
+      DIR: html
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prüfen
+        run: |
+          php -l server/backup.php
+          node tools/check.js
+      - name: Dateien zusammenstellen
+        run: |
+          mkdir _site
+          cp -r index.html manifest.webmanifest sw.js css js modules icons _site/
+          cp server/backup.php _site/
+      - name: SSH einrichten
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          echo "$HOST ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKIKfWP7vPr4BXVpI3QJE1z8BnKWhb0y7OWAStOkB5Ji" > ~/.ssh/known_hosts
+      - name: Hochladen
+        run: |
+          rsync -rlptz --delete-after --exclude /cgi-bin/ --exclude /stats/ \
+            -e "ssh -i $HOME/.ssh/deploy -o IdentitiesOnly=yes" _site/ "$USER@$HOST:$DIR/"
+      - name: Live prüfen
+        run: |
+          curl -fsS https://lern-eule.lrnz.net/sw.js | grep -q "$(grep -o "VERSION='[^']*'" sw.js)"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://lern-eule.lrnz.net' -d '{"action":"get","id":"TEST-TEST-000"}' https://lern-eule.lrnz.net/backup.php)
+          echo "backup.php: $code (404 = läuft, Code unbekannt)"
+          test "$code" = 404
