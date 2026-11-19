@@ -182,6 +182,18 @@ input{-webkit-user-select:text;user-select:text}
 .pack .pbar2 div{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:99px}
 .pack .pmeta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:3px;gap:8px}
 .pack.done{opacity:.85;border-left-color:#9ca3af}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;background:rgba(255,255,255,.18);border-radius:24px;padding:12px;border-bottom:10px solid #b45309}
+.trophy{background:#fff;border-radius:20px;padding:12px 8px 10px;text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.18);transition:transform .15s;animation:popin .5s cubic-bezier(.2,1.6,.4,1) backwards}
+.trophy:hover{transform:translateY(-3px)}
+.trophy:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.trophy .tcup{position:relative;width:68px;height:68px;margin:0 auto 6px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;background:#f3f4f6;border:4px solid #d1d5db}
+.trophy.gold .tcup{background:#fef3c7;border-color:#f59e0b}
+.trophy.silber .tcup{background:#f1f5f9;border-color:#94a3b8}
+.trophy.bronze .tcup{background:#ffedd5;border-color:#c2410c}
+.trophy .tcup i{position:absolute;right:-10px;bottom:-6px;font-style:normal;font-size:28px}
+.trophy .tn{font-size:16px;font-weight:700;line-height:1.15}
+.trophy .td{font-size:13px;color:var(--muted)}
+.trophy .tst{font-size:13px;font-weight:600;color:#92400e;margin-top:2px}
 .datechip{display:inline-block;background:#fee2e2;color:#b91c1c;border-radius:99px;padding:1px 9px;font-weight:600;font-size:13px}
 .datechip.soon{background:#fef3c7;color:#92400e}
 .datechip.past{background:#e5e7eb;color:#4b5563}

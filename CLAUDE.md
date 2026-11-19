@@ -26,7 +26,9 @@ Meist kommt eine Elternnachricht (Foto) mit Testdatum und Themen. Dann:
 
 Pro Welt mindestens ~15–20 verschiedene Fragen, damit Wiederholen nicht langweilig wird.
 Jede Frage bekommt eine `explain`, die die Regel kurz erklärt; das ist der eigentliche Lerneffekt.
-Lernpakete mit vergangenem `date` erscheinen automatisch unter „Schon geschrieben“ und bleiben spielbar.
+Lernpakete mit vergangenem `date` erscheinen ab dem Tag danach automatisch im Pokal-Regal „🏆 Geschafft“ (`trophyCard`, Medaille nach Sternen:
+Gold ab 90 %, Silber ab 60 %, sonst Bronze) und bleiben spielbar. Beim ersten Öffnen danach gibt es einmal eine Feier mit +50 XP
+(`doneParty`, gemerkt in `S.seen` als `<paket>/geschafft`, nur bis 14 Tage nach dem Test und nur, wenn geübt wurde).
 
 ### Format
 ```js

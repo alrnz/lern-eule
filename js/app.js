@@ -412,10 +412,41 @@ function renderHome(){
   ${dailySection()}
   <div class="stitle">📚 Lernpakete</div>
   <div class="packs">${active.length?active.map(packCard).join(''):'<div class="empty">Gerade steht nichts an. 🎉</div>'}</div>
-  ${done.length?`<div class="stitle">✅ Schon geschrieben</div><div class="packs">${done.map(packCard).join('')}</div>`:''}
+  ${done.length?`<div class="stitle">🏆 Geschafft</div><div class="shelf">${done.map(trophyCard).join('')}</div>`:''}
   ${allBadgesHTML()}
   <div class="footer"><button class="btn ghost" onclick="LernApp._toggleSound()">${S.sound?'🔊 Ton an':'🔇 Ton aus'}</button><button class="btn ghost" onclick="LernApp._backupAsk()">💾 Sichern / Laden</button><button class="btn ghost" onclick="LernApp._resetAsk()">↺ Neu starten</button></div>`;
   scrollTo(0,0);
+  doneParty(done);
+}
+/* Pokal-Regal: geschriebene Tests als kleine Kacheln, Medaille nach Sternen (Gold ab 90 %, Silber ab 60 %, sonst Bronze). */
+function medalOf(m){const mx=maxStars(m),p=mx?packStars(m)/mx:0;return p>=.9?'gold':p>=.6?'silber':p>0?'bronze':''}
+const MEDAL={gold:'🥇',silber:'🥈',bronze:'🥉'};
+function trophyCard(m,i){
+  const md=medalOf(m),x=parseDate(m.date);
+  return `<button class="trophy ${md}" style="--wc:${m.color||'#7c3aed'};animation-delay:${i*.06}s" onclick="LernApp.go('${m.id}')">
+    <div class="tcup"><span>${m.icon||'📘'}</span>${md?`<i>${MEDAL[md]}</i>`:''}</div>
+    <div class="tn">${esc(m.testName||m.title)}</div>
+    <div class="td">${x.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'numeric'})}</div>
+    <div class="tst">⭐ ${packStars(m)} / ${maxStars(m)}</div></button>`;
+}
+/* Einmal feiern, wenn ein Test geschrieben ist (S.seen: "<paket>/geschafft"). Nur bis 14 Tage danach und nur, wenn geübt wurde. */
+const DONE_XP=50;
+function doneParty(done){
+  const m=done.find(x=>S.seen.indexOf(x.id+'/geschafft')<0&&daysUntil(x.date)>=-14&&(packStars(x)>0||S.pc[x.id]>0));
+  if(!m)return;
+  S.seen.push(m.id+'/geschafft');
+  const lv=level();S.xp+=DONE_XP;save();
+  if(level()>lv){const l=level();setTimeout(()=>{toast('⬆️',`Level ${l}: ${titleOf(l)}!`);sfx('level')},3200)}
+  const md=medalOf(m),what=esc(m.testName||'Test');
+  setTimeout(()=>{
+    modal(`<div style="text-align:center"><div style="font-size:80px;animation:bob 1.6s ease-in-out infinite">${md?MEDAL[md]:'🏆'}</div>
+    <h2>${what} geschafft!</h2>
+    <p style="font-size:18px">Du hast so fleißig geübt – darauf kannst du stolz sein! 🦉</p>
+    <div class="rstats"><div>+${DONE_XP} XP<small>Belohnung</small></div><div>⭐ ${packStars(m)}<small>Sterne gesammelt</small></div></div>
+    <p class="mini" style="display:block;margin-bottom:12px">Der ${what} steht jetzt im Pokal-Regal. Du kannst ihn jederzeit weiter üben.</p>
+    <button class="btn primary" style="width:100%" onclick="this.closest('.modal').remove()">Juhu! 🎉</button></div>`);
+    sfx('win');bigConfetti();
+  },600);
 }
 
 /* ================= Schlafenszeit ================= */
