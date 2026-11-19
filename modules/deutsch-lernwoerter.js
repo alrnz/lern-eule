@@ -8,7 +8,7 @@
  *
  * Wort-Eintrag: 'Wort' oder {w:'Wort', tip:'HTML', say:'Vorlese-Text', accept:['auch richtig'], wrong:['falsche Schreibweisen'],
  *   gap:['richtig','falsch',…] = Stelle fürs Lücken-Spiel (erstes Vorkommen), sonst automatisch}
- * (alles außer w optional). say hilft bei gleich klingenden Wörtern und Befehlsformen ('wirf. Wirf den Ball!'),
+ * (alles außer w optional). say nur im Notfall und dann nur das eine Wort (Hör-Diktat liest einzelne Wörter, keine Sätze),
  * accept z. B. mit Artikel ('der Abend'), wrong kommt vor den automatisch erzeugten Fehlern.
  * Groß/klein zählt beim Schreiben, also Nomen groß eintragen.
  * Reihenfolge der Wörter einer Woche nie ändern (Schatzkiste), höchstens hinten anfügen.
@@ -21,17 +21,17 @@ const WOCHEN=[
   // Mi nur Hör-Diktat, Do zwei Spiele mehr, ab Fr alles:
   unlock:{blick:'2026-11-19',richtig:'2026-11-19',luecke:'2026-11-20',detektiv:'2026-11-20',chest:'2026-11-20',blitz:'2026-11-20',exam:'2026-11-20',gold:'2026-11-20'},
   words:[
-   {w:'Abend',say:'der Abend',accept:['der Abend'],tip:'Am Ende hört man t. Verlängern: die A-ben-<b>d</b>e → Aben<b>d</b>. Nomen schreibt man groß.'},
+   {w:'Abend',accept:['der Abend'],tip:'Am Ende hört man t. Verlängern: die A-ben-<b>d</b>e → Aben<b>d</b>. Nomen schreibt man groß.'},
    {w:'befehlen',tip:'be-feh-len: Das <b>h</b> hört man nicht – merken!',wrong:['befelen','befählen']},
-   {w:'befiehlt',say:'er befiehlt. Der König befiehlt.',accept:['er befiehlt'],tip:'Aus e wird <b>ie</b>: befehlen → er bef<b>ie</b>hlt. Das <b>h</b> bleibt!',wrong:['befielt','befehlt','befihlt']},
-   {w:'Burg',say:'die Burg',accept:['die Burg'],tip:'Am Ende hört man k. Verlängern: die Bur-<b>g</b>en → Bur<b>g</b>.'},
-   {w:'Burgen',gap:['g','k'],say:'die Burgen',accept:['die Burgen'],tip:'Mehrzahl von die Burg: Bur-gen. Nomen schreibt man groß.'},
+   {w:'befiehlt',accept:['er befiehlt'],tip:'Aus e wird <b>ie</b>: befehlen → er bef<b>ie</b>hlt. Das <b>h</b> bleibt!',wrong:['befielt','befehlt','befihlt']},
+   {w:'Burg',accept:['die Burg'],tip:'Am Ende hört man k. Verlängern: die Bur-<b>g</b>en → Bur<b>g</b>.'},
+   {w:'Burgen',gap:['g','k'],accept:['die Burgen'],tip:'Mehrzahl von die Burg: Bur-gen. Nomen schreibt man groß.'},
    {w:'essen',tip:'es-sen: kurzes e, darum doppeltes <b>ss</b>.'},
-   {w:'iss',gap:['i','e'],say:'iss. Iss deinen Apfel!',tip:'Aus e wird <b>i</b>: essen → <b>i</b>ss! Das <b>ss</b> bleibt.',wrong:['is','ess','iß']},
+   {w:'iss',gap:['i','e'],tip:'Aus e wird <b>i</b>: essen → <b>i</b>ss! Das <b>ss</b> bleibt.',wrong:['is','ess','iß']},
    {w:'werfen',gap:['e','ä'],tip:'wer-fen: Sprich die Silben deutlich.',wrong:['wärfen','werfn']},
-   {w:'wirf',gap:['i','e','ie'],say:'wirf. Wirf den Ball!',tip:'Aus e wird <b>i</b>: werfen → w<b>i</b>rf!',wrong:['werf','wierf','wirv']},
+   {w:'wirf',gap:['i','e','ie'],tip:'Aus e wird <b>i</b>: werfen → w<b>i</b>rf!',wrong:['werf','wierf','wirv']},
    {w:'lesen',gap:['e','eh','ee'],tip:'le-sen: langes e, nur ein <b>s</b>.',wrong:['lehsen','leesen']},
-   {w:'lies',say:'lies. Lies das Buch!',tip:'Aus e wird <b>ie</b>: lesen → l<b>ie</b>s! (langes i)',wrong:['lis','les','liess']}
+   {w:'lies',tip:'Aus e wird <b>ie</b>: lesen → l<b>ie</b>s! (langes i)',wrong:['lis','les','liess']}
   ]}
 ];
 

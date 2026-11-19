@@ -132,7 +132,7 @@ Jede Woche ~10 Lernwörter aus der Schule. Neue Woche = Eintrag **oben** in `WOC
 optional `test` = Diktat-Datum). Daraus wird automatisch ein eigenes Lernpaket `lernwoerter-<from>` mit den Spielen
 Hör-Diktat, Blitzblick (beide `noMix`: nicht im Endgegner/Blitz), Richtig geschrieben?, Lücken-Wörter, Fehler-Finder,
 Endgegner und Probetest (= ganzes Diktat). Falsche Schreibweisen und Erklärungen erzeugen die `RULES` in der Datei;
-eigene Tipps/Vorlese-Texte per `['Wort','Tipp','Vorlese-Text']`. Startseite: im Bereich „🗓️ Jeden Tag üben“ aktuelle und
+eigene Tipps per `{w:'Wort',tip:'…'}`. Das Hör-Diktat liest nur das einzelne Wort vor, keine Sätze (kein `say` mit Sätzen). Startseite: im Bereich „🗓️ Jeden Tag üben“ aktuelle und
 letzte Woche, ältere eingeklappt. Wörter einer Woche nie umsortieren (Schatzkiste).
 Spiele vorerst sperren: `closed:['blick',…]` in der Woche (ohne Datum, Karte „Geheime Welt – bald“). Später freischalten:
 aus `closed` nehmen und `unlock:{blick:'JJJJ-MM-TT'}` setzen, dann kommt die Ankündigung. `closed` geht in jedem Lernpaket.
