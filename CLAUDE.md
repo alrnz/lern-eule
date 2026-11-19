@@ -93,6 +93,7 @@ Schlafenszeit: ab 21:20 bis 6:00 zeigt die App nur „Die Tiere schlafen“ (`SL
 Lokal aus, mit `?schlafen` erzwingen.
 Optional im Lernpaket: `hideDone:true` (+ `doneLabel`) klappt Welten mit 3 Sternen ein, `keep:true` an einer Welt hält sie sichtbar.
 Die Paketseite zeigt Sterne und richtige Antworten nur dieses Pakets (`S.pc`, wie `c.correct` in den Abzeichen).
+`S.pc` gibt es seit 18.11.; ältere richtige Antworten trägt `fixState()` einmalig dem Grammatiktest nach (`S.pcFix`).
 Level: bis Level 20 je 100 XP, danach jede Stufe +30 XP (`costOf` in js/app.js).
 
 Nützliche CSS-Klassen in `prompt`/`explain`: `bigword`, `chain` + `st` + `arr`, `mini`, `hl` (Markierung), `<b>`;

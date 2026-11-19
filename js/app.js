@@ -73,6 +73,11 @@ function fixState(){
   ['badges','days','seen','fullDays'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]}); // seen: angekündigte Freischaltungen, fullDays: Tage mit Tages-Truhe
   if(S.gemDay&&(typeof S.gemDay!=='object'||typeof S.gemDay.n!=='number'))S.gemDay=null; // gemDay: Edelsteine heute
   if(S.plays&&(typeof S.plays!=='object'||!S.plays.n||typeof S.plays.n!=='object'))S.plays=null; // plays: Runden heute je Spiel
+  if(!S.pcFix){ // einmalig: richtige Antworten von vor S.pc (18.11.) gab es nur im Grammatiktest
+    const sum=Object.keys(S.pc).reduce((a,k)=>a+(+S.pc[k]||0),0),old=S.correct-sum,g='deutsch-grammatik-2026-11';
+    if(old>0)S.pc[g]=(S.pc[g]||0)+old;
+    S.pcFix=1;
+  }
   if(typeof S.name!=='string')S.name='';
   if(!S.sync||typeof S.sync!=='object'||Array.isArray(S.sync))S.sync={}; // Server-Sicherung: id = Code ohne Namen
   if(!CODE_RE.test(S.sync.id||''))S.sync={id:newCode(),dirty:1};
