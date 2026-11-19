@@ -166,7 +166,7 @@ TITLES.push('Zahlen-Ninja','Rechen-Rakete','Wissens-Wikinger','Gedanken-Blitz','
 const titleOf=l=>l<=TITLES.length?TITLES[l-1]:TITLES[TITLES.length-1]+' ⭐'+(l-TITLES.length+1);
 const BADGES=[
  {id:'first',icon:'🎉',name:'Erster Sieg',desc:'Eine Welt geschafft'},
- {id:'combo5',icon:'🔥',name:'Heiße Serie',desc:'5 richtig am Stück'},
+ {id:'combo5',icon:'🎯',name:'Volltreffer-Serie',desc:'5 richtig am Stück'},
  {id:'combo10',icon:'☄️',name:'Unaufhaltsam',desc:'10 richtig am Stück'},
  {id:'perfect',icon:'✨',name:'Perfekt',desc:'3 Sterne in einer Welt'},
  {id:'all',icon:'🗺️',name:'Weltenbummler',desc:'Alle Welten eines Lernpakets'},
@@ -183,9 +183,9 @@ const BADGES=[
  {id:'packs3',icon:'🎒',name:'Vielseitig',desc:'3 Lernpakete geschafft'},
  {id:'truhe1',icon:'🎁',name:'Erste Tages-Truhe',desc:'Alle Tagesaufgaben an einem Tag'},
  {id:'streak3',icon:'🔥',name:'Drei am Stück',desc:'3 Tage am Stück alle Tagesaufgaben'},
- {id:'streak5',icon:'📅',name:'Ganze Schulwoche',desc:'5 Tage am Stück alle Tagesaufgaben'},
- {id:'streak10',icon:'🏅',name:'Dauerbrenner',desc:'10 Tage am Stück alle Tagesaufgaben'},
- {id:'streak20',icon:'👑',name:'Übungs-König',desc:'20 Tage am Stück alle Tagesaufgaben'}
+ {id:'streak5',icon:'🏫',name:'Ganze Schulwoche',desc:'5 Tage am Stück alle Tagesaufgaben'},
+ {id:'streak10',icon:'💪',name:'Dauerbrenner',desc:'10 Tage am Stück alle Tagesaufgaben'},
+ {id:'streak20',icon:'🦁',name:'Übungs-König',desc:'20 Tage am Stück alle Tagesaufgaben'}
 ];
 /* Eigene Abzeichen eines Lernpakets (m.badges): gespeichert als "<paket-id>:<abzeichen-id>". */
 // Mehrere Lernpakete können sich Abzeichen teilen (m.badgeGroup, z. B. alle Lernwörter-Wochen).
@@ -351,7 +351,7 @@ function statsHTML(m){
     <div class="lvl"><div class="lvlbadge" data-l="${lvl}" style="--p:${pct}%"></div>
       <div style="flex:1"><div class="lvltitle">Level ${lvl} · ${titleOf(lvl)}</div><div class="xpbar"><div style="width:${pct}%"></div></div><div class="xptext">${L.into} / ${L.need} XP bis Level ${lvl+1}${lvl>=STEP_UNTIL?' · ab jetzt wird jedes Level schwerer! 💪':''}</div></div></div>
     <div class="chips">${m?`<span title="Sterne in diesem Lernpaket">⭐ ${packStars(m)} / ${maxStars(m)}</span><span class="pcorrect" title="Richtige Antworten in diesem Lernpaket">✅ ${S.pc[bkey(m)]||0} richtig ${m.badgeGroup==='lernwoerter'?'bei den Lernwörtern':'in '+esc(m.dailyName||m.title)}</span>`
-      :`<span title="Sterne">⭐ ${totalStars()}</span><span title="Beste Serie">🔥 ${S.bestCombo}</span><span title="Richtige Antworten">✅ ${S.correct}</span>`}${S.gems?`<span title="Edelsteine">💎 ${S.gems}</span>`:''}</div>
+      :`<span title="Sterne">⭐ ${totalStars()}</span><span title="Meiste Treffer am Stück">🎯 ${S.bestCombo}</span><span title="Richtige Antworten">✅ ${S.correct}</span>`}${S.gems?`<span title="Edelsteine">💎 ${S.gems}</span>`:''}</div>
   </div>`;
 }
 function packCard(m,i){
@@ -480,12 +480,12 @@ function dayStrip(m){
   while(d<=r.end){
     const isTest=+d===+r.end,isToday=+d===+t,did=played(d);if(did)n++;
     const cls=did?'did':isToday?'today':d<t?'miss':'future';
-    const icon=did?'🔥':isTest?'📝':isToday?'⭐':d<t?'💤':'·';
+    const icon=did?'✅':isTest?'📝':isToday?'⭐':d<t?'💤':'·';
     html+=`<div class="day ${cls} ${isTest?'test':''}"><small>${isToday?'Heute':WD[d.getDay()]}</small><span>${icon}</span></div>`;
     d=addDays(d,1);
   }
-  const msg=played(t)?`<b>${n} ${n===1?'Tag':'Tage'}</b> geübt – super, morgen wieder!`:'Spiel heute eine Runde für deine Flamme 🔥';
-  return `<div class="section daystrip"><h3>📅 Dein Weg bis zum Test</h3><div class="days">${html}</div><div class="dmsg">${msg}</div></div>`;
+  const msg=played(t)?`<b>${n} ${n===1?'Tag':'Tage'}</b> geübt – super, morgen wieder!`:'Spiel heute eine Runde, dann bekommt der Tag einen Haken ✅';
+  return `<div class="section daystrip"><h3>🛤️ Dein Weg bis zum Test</h3><div class="days">${html}</div><div class="dmsg">${msg}</div></div>`;
 }
 function markDay(m){
   const k=dkey(today0());if(S.days.indexOf(k)<0)S.days.push(k);
@@ -543,19 +543,25 @@ function dailyDone(m,ok){
 }
 function dailyPanel(){
   const g=dailyGoals();if(!g.length)return '';
-  const t=todayRec(),st=dailyStreak(),left=g.filter(x=>!isDoneToday(x.key)),full=!left.length;
+  const st=dailyStreak(),left=g.filter(x=>!isDoneToday(x.key)),full=!left.length,n=g.length,did=n-left.length;
   const now=today0(),mon=addDays(now,-((now.getDay()+6)%7));let days='';
-  for(let i=0;i<7;i++){
-    const d=addDays(mon,i),did=S.fullDays.indexOf(dkey(d))>=0,isToday=+d===+now,we=i>=5;
-    if(we&&!did&&!isToday)continue;
-    const cls=did?'did':isToday?'today':d<now?'miss':'future';
-    days+=`<div class="day ${cls}"><small>${isToday?'Heute':WD[d.getDay()]}</small><span>${did?'🎁':isToday?'⭐':'·'}</span></div>`;
+  for(let i=0;i<7;i++){ // jeder Tag = eine Truhe: offen (geschafft), grau (verpasst), heute x/n, später leer
+    const d=addDays(mon,i),open=S.fullDays.indexOf(dkey(d))>=0,isToday=+d===+now,we=i>=5;
+    if(we&&!open&&!isToday)continue;
+    const cls=open?'did':isToday?'today':d<now?'miss':'future';
+    const sym=open?'🎁':isToday?`<b>${did}/${n}</b>`:d<now?'🎁':'';
+    days+=`<div class="day ${cls}"><small>${isToday?'Heute':WD[d.getDay()]}</small><span>${sym}</span></div>`;
   }
+  const names=xs=>{const b=xs.map(x=>`<b>${esc(x.name)}</b>`);return b.length>1?b.slice(0,-1).join(', ')+' und '+b[b.length-1]:b[0]};
   const msg=full?'Alles geschafft! Morgen wartet die nächste Truhe. 🌙'
-    :`Noch ${left.length===1?'eine Runde':left.length+' Runden'}, dann öffnet sich die Truhe! 🎁`;
-  return `<div class="section daily"><h3>🎁 Tages-Truhe <span class="dstreak">${st?`🔥 ${st} ${st===1?'Tag':'Tage'}`:'🔥 Serie starten!'}</span></h3>
-    <div class="dgoals">${g.map(x=>{const d=isDoneToday(x.key);return `<button class="dgoal ${d?'did':''}" onclick="LernApp.go('${x.m.id}')"><span>${d?'✅':x.icon}</span>${esc(x.name)}</button>`}).join('')}<div class="dchest ${full?'open':''}">${full?'🎉':'🎁'}</div></div>
-    <div class="days">${days}</div><div class="dmsg">${msg}</div></div>`;
+    :did?`Super! Jetzt noch eine Runde ${names(left)}, dann ist die Truhe offen! 🎁`
+    :`Spiel heute ${n>1?'je ':''}eine Runde ${names(left)} – dann öffnet sich die Truhe! 🎁`;
+  const title=full?'Tagesaufgaben geschafft!':n===1?'Deine Tagesaufgabe':`Deine ${n} Tagesaufgaben`;
+  const goals=g.map(x=>{const d=isDoneToday(x.key);return `<button class="dgoal ${d?'did':''}" onclick="LernApp.go('${x.m.id}')"><i class="dcheck">${d?'✓':''}</i><span>${x.icon}</span>${esc(x.name)}</button>`}).join('<i class="dop">+</i>');
+  return `<div class="section daily"><h3>🎁 ${title} <span class="dstreak">${st?`🔥 ${st} ${st===1?'Tag':'Tage'}`:'🔥 Serie starten!'}</span></h3>
+    <div class="dprog"><div class="dbar"><i style="width:${Math.round(did/n*100)}%"></i></div><small>${did} von ${n} geschafft</small></div>
+    <div class="dgoals">${goals}<i class="dop">=</i><div class="dchest ${full?'open':''}">${full?'🎉':'🎁'}</div></div>
+    <div class="dmsg">${msg}</div><div class="days">${days}</div></div>`;
 }
 
 /* ================= Lernpaket ================= */
@@ -904,7 +910,7 @@ function renderQ(){
   app.innerHTML=`<div class="${w.gold?'goldq':''}" style="--wc:${w.color};--wc2:${w.color2||w.color}">
    <div class="qtop"><button class="iconbtn" onclick="LernApp._quit()" aria-label="Beenden">✕</button>
     ${blitz?`<div class="pbar"><div class="pfill tfill" style="width:${Math.max(0,Q.end-Date.now())/(w.seconds*1000)*100}%"></div></div><div class="streak tleft">${Math.ceil(Math.max(0,Q.end-Date.now())/1000)}s</div><div class="streak">⚡ ${Q.score}</div>`
-      :`<div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>${Q.kind==='boss'?`<div class="hearts">${heartsHTML()}</div>`:''}<div class="streak ${Q.streak>=3?'hot':''}">🔥 ${Q.streak}</div>`}</div>
+      :`<div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>${Q.kind==='boss'?`<div class="hearts">${heartsHTML()}</div>`:''}<div class="streak ${Q.streak>=3?'hot':''}">🎯 ${Q.streak}</div>`}</div>
    <div class="qmeta"><span>${w.icon} ${Q.inRetry?'Fehler-Runde':esc(w.name)}</span><span>${blitz?'Rekord: '+(S.blitz[Q.m.id]||0):`Frage ${Q.i+1} / ${Q.qs.length}`}</span></div>
    <div class="qcard ${blitz?'':'pop'}" id="qcard"><div class="qtask">${q.task||''}</div><div class="qprompt">${q.say?sayHTML():''}${q.prompt}</div>${body}</div>
    <div id="fb"></div></div>`;
@@ -989,7 +995,7 @@ function judge(ok,el,given){
     const before=level();S.xp+=gain;Q.xpGain+=gain;
     floatXP(el,'+'+gain+' XP');sfx('good');
     const r=el.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,Q.kind==='blitz'?10:22,.8);
-    if(Q.kind!=='blitz'&&[3,5,10,15,20].indexOf(Q.streak)>=0){const sk=Q.streak;setTimeout(()=>{comboPop(`🔥 ${sk}er-Serie!`);sfx('combo')},250)}
+    if(Q.kind!=='blitz'&&[3,5,10,15,20].indexOf(Q.streak)>=0){const sk=Q.streak;setTimeout(()=>{comboPop(`🎯 ${sk} Treffer am Stück!`);sfx('combo')},250)}
     if(level()>before){const l=level();setTimeout(()=>{toast('⬆️',`Level ${l}: ${titleOf(l)}!`);sfx('level');bigConfetti()},600)}
     if(Q.streak>=5)grant('combo5');if(Q.streak>=10)grant('combo10');
     if(Q.kind==='chest'&&q.key&&q.key in M){
@@ -1017,7 +1023,7 @@ function judge(ok,el,given){
     setTimeout(()=>{if(!Q||Q.kind!=='blitz')return;if(Date.now()>=Q.end)return finish(false);Q.i++;renderQ()},ok?450:1400);
     return;
   }
-  const st=document.querySelector('.streak');if(st){st.textContent='🔥 '+Q.streak;st.classList.toggle('hot',Q.streak>=3)}
+  const st=document.querySelector('.streak');if(st){st.textContent='🎯 '+Q.streak;st.classList.toggle('hot',Q.streak>=3)}
   const h=document.querySelector('.hearts');if(h)h.textContent=heartsHTML();
   const dead=Q.kind==='boss'&&Q.hearts<=0;
   let sub='';
@@ -1028,7 +1034,7 @@ function judge(ok,el,given){
     if((Q.kind==='exam'||Q.kind==='boss')&&isOpen(m,'chest'))sub+=' Morgen wartet sie in deiner 💎 Schatzkiste.';
   }
   $('#fb').innerHTML=`<div class="fb ${ok?'ok':'no'}"><div class="fbhead"><span class="owl">${m.mascot||'🦉'}</span><div>
-    <div class="fbtitle">${ok?rnd(PRAISE):rnd(OOPS)}</div>${ok&&Q.streak>=3?`<span class="combo">🔥 ${Q.streak} richtig am Stück</span>`:''}${sub?`<div class="fbsub">${sub}</div>`:''}</div></div>
+    <div class="fbtitle">${ok?rnd(PRAISE):rnd(OOPS)}</div>${ok&&Q.streak>=3?`<span class="combo">🎯 ${Q.streak} richtig am Stück</span>`:''}${sub?`<div class="fbsub">${sub}</div>`:''}</div></div>
     ${gemMsg?`<div class="gemmsg">${gemMsg}</div>`:''}
     ${q.explain?`<div class="explain">${q.explain}</div>`:''}
     <button class="btn next" onclick="LernApp._next()">${dead?'Oh nein … ➜':'Weiter ➜'}</button></div>`;
@@ -1117,7 +1123,7 @@ function finish(lost){
   app.innerHTML=`<div class="result" style="--wc:${w.color}">
     <div class="re">${emoji}</div><h2>${title}</h2><p>${msg}</p>
     ${starsRow(stars)}
-    <div class="rstats"><div>${firstTry} / ${Q.total}<small>${kind==='exam'?'richtig':'beim 1. Versuch richtig'}</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div><div>🔥 ${Q.maxStreak}<small>beste Serie</small></div></div>
+    <div class="rstats"><div>${firstTry} / ${Q.total}<small>${kind==='exam'?'richtig':'beim 1. Versuch richtig'}</small></div><div>+${Q.xpGain} XP<small>gesammelt</small></div><div>🎯 ${Q.maxStreak}<small>Treffer am Stück</small></div></div>
     ${wrongs}${badgesNew()}
     ${bossNow?`<p class="awake">${bw.icon} ${esc(bw.name)} ist erwacht! Traust du dich?</p>`:''}
     ${fresh.length?`<p class="awake fresh">🎁 Neu freigeschaltet: ${fresh.map(x=>x.icon+' '+esc(x.name)).join(', ')}!</p>`:''}

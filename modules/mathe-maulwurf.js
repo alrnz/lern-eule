@@ -465,7 +465,7 @@ LernApp.register({
     {id:'einmaleins',icon:'⛏️',name:'Einmaleins-Meister',desc:'3 Sterne in der Einmaleins-Mine',test:c=>c.starsIn('einmaleins')>=3},
     {id:'schriftlich',icon:'🛠️',name:'Rechen-Handwerker',desc:'3 Sterne in der Rechen-Werkstatt',test:c=>c.starsIn('schriftlich')>=3},
     {id:'knobel',icon:'🧩',name:'Knobel-Profi',desc:'3 Sterne in der Knobel-Kammer',test:c=>c.starsIn('knobel')>=3},
-    {id:'serie15',icon:'🔥',name:'Rechen-Serie',desc:'15 Mathe-Aufgaben richtig am Stück',test:c=>c.streak>=15},
+    {id:'serie15',icon:'🎯',name:'Rechen-Serie',desc:'15 Mathe-Aufgaben richtig am Stück',test:c=>c.streak>=15},
     {id:'blitz20',icon:'⚡',name:'Kopfrechen-Blitz',desc:'20 richtig in einer Mathe-Blitzrunde',test:c=>c.kind==='blitz'&&c.score>=20},
     {id:'r100',icon:'💯',name:'Hundert!',desc:'100 Mathe-Aufgaben richtig',test:c=>c.correct>=100},
     {id:'r1000',icon:'🧮',name:'Rechen-Maschine',desc:'1000 Mathe-Aufgaben richtig',test:c=>c.correct>=1000},
