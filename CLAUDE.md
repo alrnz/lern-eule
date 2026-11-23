@@ -133,12 +133,17 @@ Probetest ab 2 Sternen im 5er-Ast (`missionAfter`). `REIHEN` nie umsortieren (Sc
 ### Lernwörter (`modules/deutsch-lernwoerter.js`)
 Jede Woche ~10 Lernwörter aus der Schule. Neue Woche = Eintrag **oben** in `WOCHEN` (`from` = Montag der Woche,
 optional `test` = Diktat-Datum). Daraus wird automatisch ein eigenes Lernpaket `lernwoerter-<from>` mit den Spielen
-Hör-Diktat, Blitzblick (beide `noMix`: nicht im Endgegner/Blitz), Richtig geschrieben?, Lücken-Wörter, Fehler-Finder,
-Endgegner und Probetest (= ganzes Diktat). Falsche Schreibweisen und Erklärungen erzeugen die `RULES` in der Datei;
-eigene Tipps per `{w:'Wort',tip:'…'}`. Das Hör-Diktat liest nur das einzelne Wort vor, keine Sätze (kein `say` mit Sätzen). Startseite: im Bereich „🗓️ Jeden Tag üben“ aktuelle und
+Richtig geschrieben?, Lücken-Wörter, Fehler-Finder und Endgegner. Falsche Schreibweisen und Erklärungen erzeugen die `RULES` in der Datei;
+eigene Tipps per `{w:'Wort',tip:'…'}`. Startseite: im Bereich „🗓️ Jeden Tag üben“ aktuelle und
 letzte Woche, ältere eingeklappt. Wörter einer Woche nie umsortieren (Schatzkiste).
 Spiele vorerst sperren: `closed:['blick',…]` in der Woche (ohne Datum, Karte „Geheime Welt – bald“). Später freischalten:
 aus `closed` nehmen und `unlock:{blick:'JJJJ-MM-TT'}` setzen, dann kommt die Ankündigung. `closed` geht in jedem Lernpaket.
+
+### Keine Vorlese- und Wort-Tipp-Spiele (seit 23.11.2026)
+Hör-Diktat (`say`), Blitzblick und Probetests, bei denen ganze Wörter getippt werden, kamen beim Kind nicht gut an und sind entfernt.
+Keine neuen Spiele mit Sprachausgabe oder Wort-Eingabe bauen. Zahlen tippen (`num`, Mathe-Probetests) bleibt.
+`noExam:true` blendet den Probetest eines Pakets aus; Schatzkiste verwirft alte Wort-Tipp-Fragen (`byKey`).
+Abzeichen mit `retired:true` werden nicht mehr vergeben und nur angezeigt, wenn sie schon verdient wurden.
 
 ## Spielstand sichern
 Startseite unten: „💾 Sichern / Laden“ (hinter der Eltern-Malaufgabe). Sichern = JSON-Datei `lern-eule-<Name>-<Datum>.json`

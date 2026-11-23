@@ -190,7 +190,8 @@ const BADGES=[
 /* Eigene Abzeichen eines Lernpakets (m.badges): gespeichert als "<paket-id>:<abzeichen-id>". */
 // Mehrere Lernpakete können sich Abzeichen teilen (m.badgeGroup, z. B. alle Lernwörter-Wochen).
 const bkey=m=>m.badgeGroup||m.id;
-const packBadges=m=>(m.badges||[]).map(b=>Object.assign({},b,{id:bkey(m)+':'+b.id}));
+// retired:true = Abzeichen gibt es nicht mehr; wer es schon hat, behält es (wird nur dann angezeigt, nie mehr vergeben).
+const packBadges=m=>(m.badges||[]).filter(b=>!b.retired||S.badges.indexOf(bkey(m)+':'+b.id)>=0).map(b=>Object.assign({},b,{id:bkey(m)+':'+b.id}));
 const findBadge=id=>BADGES.find(x=>x.id===id)||LernApp.modules.reduce((f,m)=>f||packBadges(m).find(x=>x.id===id),null);
 function grant(id){
   if(S.badges.indexOf(id)>=0)return;
@@ -214,7 +215,8 @@ function checkPackBadges(m,ev){
 }
 
 /* ================= Spezial-Welten ================= */
-const hasWrite=m=>m.worlds.some(w=>w.write);
+// m.noExam: kein Probetest (Wörter selbst tippen kam nicht gut an)
+const hasWrite=m=>!m.noExam&&m.worlds.some(w=>w.write);
 function bossW(m){
   const b=m.boss;
   return {id:'boss',kind:'boss',name:b.name||'Endgegner',icon:b.icon||'🐉',color:b.color||'#dc2626',color2:b.color2||'#f97316',
@@ -262,7 +264,10 @@ function byKey(m,key){
   let f=null;
   if(p[1]==='w'){const l=w.write?w.write():[];f=l[+p[2]]}
   else{const c=w.cats()[+p[1].slice(1)];f=c?c[+p[2]]:null}
-  return f?()=>tag(f(),w,key):null;
+  if(!f)return null;
+  // Wörter selbst tippen gibt es nicht mehr: solche Fragen fliegen aus der Schatzkiste (Zahlen tippen bleibt)
+  try{const q=f();if(q.input&&!q.num)return null}catch(e){return null}
+  return ()=>tag(f(),w,key);
 }
 const chestReady=(m,k)=>{const d=mistAt(m)[k];return !d||d<dkey(today0())};
 const chestKeys=m=>Object.keys(mist(m)).filter(k=>chestReady(m,k));
@@ -390,7 +395,7 @@ const gotN=list=>list.filter(b=>S.badges.indexOf(b.id)>=0).length;
 const bgrid=list=>`<div class="bgrid">${list.map(b=>`<div class="badge ${S.badges.indexOf(b.id)>=0?'got':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('')}</div>`;
 const badgeTitle=m=>`${m.icon||'🏅'} ${esc(m.badgeTitle||'Abzeichen: '+m.title)}`;
 /** Lernpaket-Seite: nur die eigenen Abzeichen des Pakets */
-const packBadgesHTML=m=>m.badges&&m.badges.length?`<div class="section"><h3>${badgeTitle(m)} (${gotN(packBadges(m))}/${m.badges.length})</h3>${bgrid(packBadges(m))}</div>`:'';
+const packBadgesHTML=m=>m.badges&&m.badges.length?`<div class="section"><h3>${badgeTitle(m)} (${gotN(packBadges(m))}/${packBadges(m).length})</h3>${bgrid(packBadges(m))}</div>`:'';
 /** Startseite: alle Abzeichen gesammelt – allgemeine und die aller Lernpakete (geteilte Gruppen nur einmal) */
 function allBadgesHTML(){
   const groups=[{title:'🦉 Allgemein',list:BADGES}],seen={};

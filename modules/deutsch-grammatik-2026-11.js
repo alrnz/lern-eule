@@ -354,31 +354,26 @@ LernApp.register({
   subtitle:'Adjektive erkennen, steigern & bilden, Wörter verlängern, Satzarten',
   testName:'Grammatiktest',
   date:'2026-11-20',
+  // 23.11.: Hör-Diktat und Probetest (Wörter selbst tippen) entfernt – kam nicht gut an
   icon:'📘',
   color:'#7c3aed',
   worlds:[
     {id:'probe',name:'Adjektiv-Labor',icon:'🧪',color:'#db2777',color2:'#f472b6',topic:'Ist das ein Adjektiv? Mach die Adjektiv-Probe!',
      rules:'Die <b>Adjektiv-Probe</b>:<br>1. Passt die Frage <b>Wie ist jemand / etwas?</b> → Das Wasser ist <b>kalt</b>.<br>2. Passt es <b>zwischen Artikel und Nomen</b>? → das <b>kalte</b> Wasser<br>3. Gibt es ein <b>Gegenteil</b>? → kalt – warm<br>Adjektive schreibt man <b>klein</b>.',
-     cats:()=>[PROBE.map(p=>()=>qWhichAdj(p)),PROBE.map(p=>()=>qGegenteil(p)),PROBE.map(p=>()=>qArtikel(p)),ADJSENT.map(x=>()=>qFindAdj(x))],
-     write:()=>PROBE.map(p=>()=>wGegenteil(p)).concat(ADJSENT.map(x=>()=>wFindAdj(x)))},
+     cats:()=>[PROBE.map(p=>()=>qWhichAdj(p)),PROBE.map(p=>()=>qGegenteil(p)),PROBE.map(p=>()=>qArtikel(p)),ADJSENT.map(x=>()=>qFindAdj(x))]},
     {id:'steigern',name:'Steiger-Turm',icon:'🚀',color:'#f97316',color2:'#f59e0b',topic:'Adjektive steigern: schnell, schneller als, am schnellsten',
      rules:'schnell → <b>schneller als</b> → <b>am schnellsten</b><br>Vorsicht, Ausnahmen: gut → besser → am besten · viel → mehr → am meisten · gern → lieber → am liebsten · hoch → höher → am höchsten<br>Verschieden: <b>größer als</b> · Gleich: <b>so groß wie</b>',
-     cats:()=>[ADJ.map(a=>()=>qChain(a,'s')),ADJ.map(a=>()=>qChain(a,'k')),COMP_SENT.map(c=>()=>qCompSent(c)),ALSWIE.map(c=>()=>qAlsWie(c))],
-     // Schreib-Reihenfolge: erst die alten Fragen, die neuen hinten dran (Schatzkiste merkt sich die Position)
-     write:()=>ADJ0.map(a=>()=>wChain(a,'s')).concat(ADJ0.map(a=>()=>wChain(a,'k')),COMP0.map(c=>()=>wCompSent(c)),ALSWIE.map(c=>()=>wAlsWie(c)),
-       ADJ1.map(a=>()=>wChain(a,'s')),ADJ1.map(a=>()=>wChain(a,'k')),COMP1.map(c=>()=>wCompSent(c)))},
+     cats:()=>[ADJ.map(a=>()=>qChain(a,'s')),ADJ.map(a=>()=>qChain(a,'k')),COMP_SENT.map(c=>()=>qCompSent(c)),ALSWIE.map(c=>()=>qAlsWie(c))]},
+
     {id:'nomen',name:'Wort-Werkstatt',icon:'🛠️',color:'#16a34a',color2:'#10b981',topic:'Aus Nomen Adjektive bilden: das Glück → glücklich',
      rules:'Mit den Endungen <b>-ig</b> und <b>-lich</b>: das Glück → glück<b>lich</b>, die Sonne → sonn<b>ig</b>, der Tag → täg<b>lich</b><br>Manchmal auch <b>-isch</b>: der Sturm → stürm<b>isch</b><br>Adjektive schreibt man <b>klein</b>!',
-     cats:()=>[NA.map(x=>()=>qNomen(x)),NA.map(x=>()=>qEndung(x)),NSENT.map(x=>()=>qNSent(x))],
-     write:()=>NA.map(x=>()=>wNomen(x)).concat(NSENT.map(x=>()=>wNSent(x)))},
+     cats:()=>[NA.map(x=>()=>qNomen(x)),NA.map(x=>()=>qEndung(x)),NSENT.map(x=>()=>qNSent(x))]},
     {id:'verl',name:'Detektiv-Büro',icon:'🔍',color:'#7c3aed',color2:'#a855f7',topic:'d oder t? g oder k? b oder p? Wörter verlängern',
      rules:'Am Wortende hört man es nicht. Darum: <b>Wort verlängern!</b><br>der Hund → die Hun<b>d</b>e · der Berg → die Ber<b>g</b>e · der Korb → die Kör<b>b</b>e<br>Bei Verben: Grundform bilden: sie sagt → sa<b>g</b>en',
-     cats:()=>['dt','gk','bp'].map(pr=>VL.filter(v=>pr.indexOf(v[1])>=0).map(v=>()=>qVerl(v))),
-     write:()=>VL.map(v=>()=>wVerl(v))},
+     cats:()=>['dt','gk','bp'].map(pr=>VL.filter(v=>pr.indexOf(v[1])>=0).map(v=>()=>qVerl(v)))},
     {id:'satz',name:'Satz-Insel',icon:'🏝️',color:'#0284c7',color2:'#06b6d4',topic:'Satzarten: Aussage-, Frage-, Aufforderungs- und Ausrufesatz',
      rules:'<b>Aussagesatz</b> erzählt etwas → <b>.</b><br><b>Fragesatz</b> fragt (W-Wort oder Verb vorne) → <b>?</b><br><b>Aufforderungssatz</b> ist Bitte oder Befehl → <b>!</b><br><b>Ausrufesatz</b> zeigt ein Gefühl (Oh! Hurra! Igitt! Au!) → <b>!</b>',
-     cats:()=>[SATZ.map(s=>()=>qSatzTyp(s)),SATZ.map(s=>()=>qZeichen(s))],
-     write:()=>SATZ.map(s=>()=>wZeichen(s))}
+     cats:()=>[SATZ.map(s=>()=>qSatzTyp(s)),SATZ.map(s=>()=>qZeichen(s))]}
   ],
   boss:{name:'Grammatik-Drache',icon:'🐉',count:15,lives:3},
   badgeTitle:'Grammatik-Abzeichen',
@@ -389,19 +384,16 @@ LernApp.register({
     {id:'detektiv',icon:'🔍',name:'Meister-Detektiv',desc:'3 Sterne im Detektiv-Büro',test:c=>c.starsIn('verl')>=3},
     {id:'insel',icon:'🏝️',name:'Insel-Kapitän',desc:'3 Sterne auf der Satz-Insel',test:c=>c.starsIn('satz')>=3},
     {id:'fehler',icon:'🕵️',name:'Fehler-Jäger',desc:'3 Sterne beim Fehler-Detektiv',test:c=>c.starsIn('detektiv')>=3},
-    {id:'ohr',icon:'🎧',name:'Gute Ohren',desc:'3 Sterne im Hör-Diktat',test:c=>c.starsIn('diktat')>=3},
+    {id:'ohr',retired:true,icon:'🎧',name:'Gute Ohren',desc:'3 Sterne im Hör-Diktat',test:()=>false},
     {id:'drache',icon:'🐉',name:'Drachen-Zähmer',desc:'Den Grammatik-Drachen besiegt',test:c=>c.kind==='boss'&&c.won&&!c.gold},
     {id:'r100',icon:'📖',name:'Grammatik-Fan',desc:'100 Grammatik-Fragen richtig',test:c=>c.correct>=100},
     {id:'krone',icon:'👑',name:'Grammatik-König',desc:'Alle Sterne im Grammatiktest',test:c=>c.allStars}
   ],
   missions:[
     {id:'detektiv',name:'Fehler-Detektiv',icon:'🕵️',color:'#334155',color2:'#64748b',count:8,topic:'In jedem Satz verstecken sich Fehler. Findest du sie alle?',
-     cats:()=>[SPOT.map(x=>()=>qSpot(x))]},
-    {id:'diktat',name:'Hör-Diktat',icon:'🎧',color:'#9333ea',color2:'#ec4899',count:10,topic:'Die Eule liest vor – du schreibst! Ton anschalten 🔊',
-     cats:()=>[VL.filter(v=>'dt'.indexOf(v[1])>=0).map(v=>()=>dVerl(v)),VL.filter(v=>'gkbp'.indexOf(v[1])>=0).map(v=>()=>dVerl(v)),
-       NA.map(x=>()=>dNomen(x)),ADJ0.map(a=>()=>dStufe(a,'k')).concat(ADJ0.map(a=>()=>dStufe(a,'s')),ADJ1.map(a=>()=>dStufe(a,'k')),ADJ1.map(a=>()=>dStufe(a,'s'))),DSATZ.map(x=>()=>dSatz(x))]}
+     cats:()=>[SPOT.map(x=>()=>qSpot(x))]}
   ],
   // Spannung bis zum Test: jeden Tag kommt etwas Neues dazu
-  unlock:{blitz:'2026-11-17',chest:'2026-11-18',gold:'2026-11-18',exam:'2026-11-18',detektiv:'2026-11-18',diktat:'2026-11-19'}
+  unlock:{blitz:'2026-11-17',chest:'2026-11-18',gold:'2026-11-18',exam:'2026-11-18',detektiv:'2026-11-18'}
 });
 })();

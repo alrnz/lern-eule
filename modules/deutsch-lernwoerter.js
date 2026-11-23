@@ -18,8 +18,7 @@ const {shuffle,pick3,uniq,esc}=LernApp.util;
 
 const WOCHEN=[
  {from:'2026-11-16', // optional: test:'2026-11-27' (Diktat-Datum, zeigt Countdown)
-  // Mi nur Hör-Diktat, Do zwei Spiele mehr, ab Fr alles:
-  unlock:{blick:'2026-11-19',richtig:'2026-11-19',luecke:'2026-11-20',detektiv:'2026-11-20',chest:'2026-11-20',blitz:'2026-11-20',exam:'2026-11-20',gold:'2026-11-20'},
+  unlock:{richtig:'2026-11-19',luecke:'2026-11-20',detektiv:'2026-11-20',chest:'2026-11-20',blitz:'2026-11-20',gold:'2026-11-20'},
   words:[
    {w:'Abend',accept:['der Abend'],tip:'Am Ende hört man t. Verlängern: die A-ben-<b>d</b>e → Aben<b>d</b>. Nomen schreibt man groß.'},
    {w:'befehlen',tip:'be-feh-len: Das <b>h</b> hört man nicht – merken!',wrong:['befelen','befählen']},
@@ -113,26 +112,17 @@ function build(week){
   const W=week.words.map(x=>{const o=typeof x==='string'?{w:x}:x;return {w:o.w,tip:o.tip||'',say:o.say||o.w,accept:[o.w].concat(o.accept||[]),wrong:o.wrong||[],gap:o.gap}});
   const ws=W.map(x=>x.w),n=W.length;
   const d=week.from.split('-'),label=`${+d[2]}.${+d[1]}.`;
-  const dictate=W.map(x=>()=>({input:true,task:'🎧 Hör gut zu und schreib das Wort.',prompt:'',say:x.say,answer:x.w,accept:x.accept,explain:explainOf(x)}));
   const list=`<div class="wlist">${W.map(x=>`<div>${esc(x.w)}</div>`).join('')}</div>`;
   LernApp.register({
     id:'lernwoerter-'+week.from, group:'lernwoerter', from:week.from,
     subject:'Lernwörter', title:'Lernwörter vom '+label,
     subtitle:ws.slice(0,4).join(', ')+(n>4?' …':''),
     date:week.test, testName:'Diktat',
-    icon:'✏️', color:'#16a34a', daily:true, dailyName:'Lernwörter', questionsPerWorld:n, examCount:n,
+    icon:'✏️', color:'#16a34a', daily:true, dailyName:'Lernwörter', questionsPerWorld:n, noExam:true,
     closed:week.closed, unlock:week.unlock,
-    hello:(week.closed&&week.closed.length)||later(week)?`Deine ${n} Lernwörter! Hör gut zu und schreib sie auf. Weitere Spiele kommen bald. ✍️`
-      :`Deine ${n} Lernwörter! Spiel die Welten und schreib zum Schluss den Probetest – wie ein echtes Diktat. ✍️`,
+    hello:(week.closed&&week.closed.length)||later(week)?`Deine ${n} Lernwörter! Weitere Spiele kommen bald. ✍️`
+      :`Deine ${n} Lernwörter! Spiel die Welten und besieg zum Schluss das Wörter-Monster. ✍️`,
     worlds:[
-      {id:'hoeren',name:'Hör-Diktat',icon:'🎧',color:'#16a34a',color2:'#4ade80',noMix:true,
-       topic:'Die Eule liest vor, du schreibst.',rules:'Das sind deine Lernwörter:'+list,
-       cats:()=>[dictate],write:()=>dictate},
-      {id:'blick',name:'Blitzblick',icon:'👀',color:'#0891b2',color2:'#22d3ee',noMix:true,
-       topic:'Wort anschauen, merken – weg! Jetzt schreiben.',
-       cats:()=>[W.map(x=>()=>({input:true,task:'👀 Merk dir das Wort genau!',
-         prompt:`<div class="flashword">${esc(x.w)}</div><div class="flashgone">Weg! Jetzt schreib es auf. ✍️</div>`,
-         answer:x.w,accept:x.accept,explain:explainOf(x)}))]},
       {id:'richtig',name:'Richtig geschrieben?',icon:'🔍',color:'#7c3aed',color2:'#a78bfa',
        topic:'Welches Wort ist richtig geschrieben?',
        cats:()=>[W.map(x=>()=>({task:'Welches Wort ist richtig geschrieben?',prompt:'🔍',options:[x.w].concat(wrongs(x.w,x.wrong).slice(0,3)),answer:x.w,explain:explainOf(x)}))]},
@@ -152,10 +142,10 @@ function build(week){
     badgeGroup:'lernwoerter',badgeTitle:'Lernwörter-Abzeichen',
     badges:[
       {id:'woche',icon:'✏️',name:'Wort-Starter',desc:'Ein Lernwörter-Spiel geschafft',test:c=>c.kind==='world'&&c.stars>0},
-      {id:'ohr',icon:'🎧',name:'Spitzen-Ohr',desc:'3 Sterne im Hör-Diktat',test:c=>c.world==='hoeren'&&c.stars>=3},
-      {id:'blick',icon:'👀',name:'Adlerauge',desc:'3 Sterne im Blitzblick',test:c=>c.world==='blick'&&c.stars>=3},
+      {id:'ohr',retired:true,icon:'🎧',name:'Spitzen-Ohr',desc:'3 Sterne im Hör-Diktat',test:c=>c.world==='hoeren'&&c.stars>=3},
+      {id:'blick',retired:true,icon:'👀',name:'Adlerauge',desc:'3 Sterne im Blitzblick',test:c=>c.world==='blick'&&c.stars>=3},
       {id:'finder',icon:'🕵️',name:'Fehler-Finder',desc:'3 Sterne im Fehler-Finder',test:c=>c.world==='detektiv'&&c.stars>=3},
-      {id:'diktat',icon:'📝',name:'Diktat-Profi',desc:'Probetest mit 3 Sternen',test:c=>c.kind==='exam'&&c.stars>=3},
+      {id:'diktat',retired:true,icon:'📝',name:'Diktat-Profi',desc:'Probetest mit 3 Sternen',test:c=>c.kind==='exam'&&c.stars>=3},
       {id:'monster',icon:'👾',name:'Monster-Bändiger',desc:'Das Wörter-Monster besiegt',test:c=>c.kind==='boss'&&c.won&&!c.gold},
       {id:'woche3',icon:'🌟',name:'Wochen-Star',desc:'Alle Sterne einer Lernwörter-Woche',test:c=>c.allStars},
       {id:'r50',icon:'🖍️',name:'Schreib-Fleißig',desc:'50 Lernwörter richtig',test:c=>c.correct>=50},
