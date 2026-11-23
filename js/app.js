@@ -106,9 +106,15 @@ function dateChip(m){
   if(d===1)return `<span class="datechip">Morgen</span>`;
   return `<span class="datechip ${d>5?'past':'soon'}">in ${d} Tagen</span>`;
 }
+/* Jeden Tag ein anderer Spruch: Liste → Eintrag nach Tag (bleibt den Tag über gleich). */
+const ofDay=l=>Array.isArray(l)?l[Math.floor(today0().getTime()/864e5)%l.length]:l;
+const HOME_HELLO=['Wähle ein Lernpaket und sammle Sterne! ⭐','Heute ist ein super Tag zum Sterne-Sammeln! ✨',
+  'Die Tiere warten schon auf dich! Wohin geht es heute? 🗺️','Bereit für ein neues Abenteuer? Ich bin es! 🚀',
+  'Schon die Tages-Truhe geöffnet? Da wartet etwas auf dich! 🎁','Jeder Stern macht dich stärker! Los geht’s! 💪',
+  'Ich hab heute richtig Lust zu spielen – du auch? 🎉'];
 function countdownText(m){
   const d=daysUntil(m.date);const what=m.testName||'Test';
-  if(d===null)return m.hello||'Wähle eine Welt und sammle Sterne!';
+  if(d===null)return ofDay(m.hello)||'Wähle eine Welt und sammle Sterne!';
   if(d>1)return `Noch <b>${d} Tage</b> bis zum ${esc(what)}. Lass uns üben!`;
   if(d===1)return `<b>Morgen</b> ist der ${esc(what)} – noch eine Runde, dann bist du bereit!`;
   if(d===0)return `<b>Heute</b> ist ${esc(what)}-Tag! Du schaffst das! 🍀`;
@@ -407,7 +413,7 @@ function renderHome(){
   const active=sortPacks(LernApp.modules.filter(m=>!isDone(m)&&!isDaily(m)));
   const done=sortPacks(LernApp.modules.filter(m=>isDone(m)&&!isDaily(m))).reverse();
   const next=active.find(m=>daysUntil(m.date)!==null);
-  const greet=next?`${countdownText(next)} <br><small>(${esc(next.title)} · ${fmtDate(next.date)})</small>`:'Wähle ein Lernpaket und sammle Sterne!';
+  const greet=next?`${countdownText(next)} <br><small>(${esc(next.title)} · ${fmtDate(next.date)})</small>`:ofDay(HOME_HELLO);
   app.innerHTML=`
   <div class="title">Lern-Eule<small>Deine Lern-App</small></div>
   ${OLD_HOST?movedBanner():''}

@@ -59,6 +59,7 @@ LernApp.register({
   missions:[{id:'detektiv', name:'Fehler-Detektiv', icon:'🕵️', color:'#334155', color2:'#64748b', count:8, topic:'…', cats:()=>[[…]]}],
   missionAfter:{blitz:'reihe6', exam:'reihe8'},  // optional: Spezial-Missionen (chest, blitz, exam, gold) erst ab 2 Sternen in dieser Welt
   unlock:{chest:'2026-12-01', blitz:'2026-12-01', gold:'2026-12-02', exam:'2026-12-03', detektiv:'2026-12-02'}, // optional: Spezial-Missionen, eigene missions-IDs und Welt-IDs erst ab Datum (vorher „Geheime Mission/Welt“). Lokal ist alles offen, außer mit ?live in der Adresse
+  hello:['Spruch 1','Spruch 2'],   // optional, nur ohne date: Text der Eule oben; als Liste jeden Tag ein anderer (ofDay)
   mascot:'🦉',                     // optional: Maskottchen auf der Paketseite und in den Rückmeldungen (Emoji oder SVG-HTML)
   badgeTitle:'Maulwurf-Abzeichen', // optional: Überschrift der eigenen Abzeichen
   badgeGroup:'lernwoerter',        // optional: mehrere Pakete teilen sich Abzeichen und Zähler (z. B. alle Lernwörter-Wochen)

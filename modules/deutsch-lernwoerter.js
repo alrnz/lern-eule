@@ -120,8 +120,13 @@ function build(week){
     date:week.test, testName:'Diktat',
     icon:'✏️', color:'#16a34a', daily:true, dailyName:'Lernwörter', questionsPerWorld:n, noExam:true,
     closed:week.closed, unlock:week.unlock,
-    hello:(week.closed&&week.closed.length)||later(week)?`Deine ${n} Lernwörter! Weitere Spiele kommen bald. ✍️`
-      :`Deine ${n} Lernwörter! Spiel die Welten und besieg zum Schluss das Wörter-Monster. ✍️`,
+    hello:(week.closed&&week.closed.length)||later(week)?`Deine ${n} Lernwörter! Weitere Spiele kommen bald. ✍️`:[
+      `Achtung, das <b>Wörter-Monster</b> 👾 ist wach! Schaffst du alle ${n} Lernwörter?`,
+      `Psst … in einem Wort hat sich ein Fehler versteckt! 🕵️ Findest du ihn?`,
+      `Welche Buchstaben fehlen? Die Lücken-Wörter warten auf dich! 🧩`,
+      `Neuer Tag, neue Sterne! ⭐ Wie viele holst du dir heute?`,
+      `Blitzrunde! ⚡ Wie viele Lernwörter schaffst du in 60 Sekunden?`,
+      `Du bist ein echter Wörter-Detektiv! 🔍 Zeig dem Monster, was du kannst!`],
     worlds:[
       {id:'richtig',name:'Richtig geschrieben?',icon:'🔍',color:'#7c3aed',color2:'#a78bfa',
        topic:'Welches Wort ist richtig geschrieben?',
