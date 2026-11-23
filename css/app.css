@@ -13,10 +13,22 @@ button{font-family:inherit;cursor:pointer;border:none;color:inherit}
 
 /* ---------- Home ---------- */
 .hero{display:flex;align-items:center;gap:14px;margin:6px 0 14px}
-.mascot{font-size:72px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.25));animation:bob 2.4s ease-in-out infinite;flex:none}
-@keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
-.bubble{background:#fff;border-radius:22px;padding:14px 18px;font-size:19px;font-weight:500;position:relative;box-shadow:0 8px 0 rgba(0,0,0,.12);animation:popin .5s cubic-bezier(.2,1.6,.4,1)}
-.bubble:before{content:"";position:absolute;left:-10px;top:50%;margin-top:-10px;border:10px solid transparent;border-right-color:#fff;border-left:0}
+/* Eule oben: leuchtender Schein, Glitzer, ab und zu ein Freudensprung */
+.mascot{font-size:78px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.25));animation:bob 2.4s ease-in-out infinite,hop 7s ease-in-out infinite;flex:none;position:relative;isolation:isolate}
+.mascot:before{content:"";position:absolute;inset:-14px;z-index:-1;border-radius:50%;
+  background:radial-gradient(circle,rgba(254,240,138,.95) 0%,rgba(253,224,71,.7) 30%,rgba(244,114,182,.45) 55%,transparent 72%);animation:glow 2.4s ease-in-out infinite}
+.mascot:after{content:"✨";position:absolute;right:-12px;top:-8px;font-size:24px;animation:twinkle 1.8s ease-in-out infinite}
+.hero .bubble:after{content:"⭐";position:absolute;right:-6px;top:-14px;font-size:24px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));animation:twinkle 2.2s ease-in-out .6s infinite}
+@keyframes bob{0%,100%{translate:0 0;rotate:-4deg}50%{translate:0 -8px;rotate:4deg}}
+@keyframes hop{0%,88%,100%{scale:1}91%{scale:1.15 .9}94%{scale:.95 1.12;transform:translateY(-14px)}97%{scale:1.05 .95}}
+@keyframes glow{0%,100%{opacity:.6;transform:scale(.9)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes twinkle{0%,100%{opacity:.2;transform:scale(.6) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(20deg)}}
+.bubble{border:3px solid transparent;border-radius:22px;padding:13px 17px;font-size:19px;font-weight:500;position:relative;
+  background:linear-gradient(#fff,#fff) padding-box,linear-gradient(120deg,#f472b6,#facc15,#34d399,#38bdf8,#a78bfa,#f472b6) border-box;
+  background-size:100% 100%,300% 100%;box-shadow:0 8px 0 rgba(0,0,0,.12),0 0 22px rgba(253,224,71,.35);
+  animation:popin .5s cubic-bezier(.2,1.6,.4,1),rainbow 6s linear infinite}
+@keyframes rainbow{to{background-position:0 0,300% 0}}
+.bubble:before{content:"";position:absolute;left:-13px;top:50%;margin-top:-10px;border:10px solid transparent;border-right-color:#fff;border-left:0;filter:drop-shadow(-3px 0 0 #f9a8d4)}
 .bubble b{color:#7c3aed}
 .title{font-size:34px;font-weight:700;color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.2);letter-spacing:.5px;text-align:center;margin-bottom:4px}
 .title small{display:block;font-size:15px;font-weight:500;opacity:.85;letter-spacing:0}
