@@ -398,10 +398,10 @@ function sortPacks(list){
     if(da===null&&db===null)return 0;if(da===null)return 1;if(db===null)return -1;return da-db});
 }
 const gotN=list=>list.filter(b=>S.badges.indexOf(b.id)>=0).length;
-const bgrid=list=>`<div class="bgrid">${list.map(b=>`<div class="badge ${S.badges.indexOf(b.id)>=0?'got':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('')}</div>`;
+const bgrid=(list,look)=>`<div class="bgrid${look?' '+look:''}">${list.map(b=>`<div class="badge ${S.badges.indexOf(b.id)>=0?'got':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('')}</div>`;
 const badgeTitle=m=>`${m.icon||'🏅'} ${esc(m.badgeTitle||'Abzeichen: '+m.title)}`;
 /** Lernpaket-Seite: nur die eigenen Abzeichen des Pakets */
-const packBadgesHTML=m=>m.badges&&m.badges.length?`<div class="section"><h3>${badgeTitle(m)} (${gotN(packBadges(m))}/${packBadges(m).length})</h3>${bgrid(packBadges(m))}</div>`:'';
+const packBadgesHTML=m=>m.badges&&m.badges.length?`<div class="section"><h3>${badgeTitle(m)} (${gotN(packBadges(m))}/${packBadges(m).length})</h3>${bgrid(packBadges(m),m.badgeLook)}</div>`:'';
 /** Startseite: alle Abzeichen gesammelt – allgemeine und die aller Lernpakete (geteilte Gruppen nur einmal) */
 function allBadgesHTML(){
   const groups=[{title:'🦉 Allgemein',list:BADGES}],seen={};
@@ -1064,7 +1064,7 @@ function resultBtns(m,primaryId,primaryLabel){
   return `<div class="rbtns"><button class="btn" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button><button class="btn primary" onclick="LernApp.start('${primaryId}')">${primaryLabel}</button></div>`;
 }
 function badgesNew(){
-  return Q.newBadges.length?`<p><b>Neue Abzeichen!</b></p><div class="newbadges">${Q.newBadges.map(b=>`<div class="badge got"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div></div>`).join('')}</div>`:'';
+  return Q.newBadges.length?`<p><b>Neue Abzeichen!</b></p><div class="newbadges${Q.m&&Q.m.badgeLook&&Q.newBadges.every(b=>b.id.indexOf(bkey(Q.m)+':')===0)?' '+Q.m.badgeLook:''}">${Q.newBadges.map(b=>`<div class="badge got"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div></div>`).join('')}</div>`:'';
 }
 function starsRow(stars){return `<div class="stars">${[1,2,3].map(n=>`<span class="star ${n<=stars?'on':''}" style="animation-delay:${.2+n*.3}s">★</span>`).join('')}</div>`}
 function finish(lost){

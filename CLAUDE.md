@@ -63,6 +63,7 @@ LernApp.register({
   mascot:'🦉',                     // optional: Maskottchen auf der Paketseite und in den Rückmeldungen (Emoji oder SVG-HTML)
   badgeTitle:'Maulwurf-Abzeichen', // optional: Überschrift der eigenen Abzeichen
   badgeGroup:'lernwoerter',        // optional: mehrere Pakete teilen sich Abzeichen und Zähler (z. B. alle Lernwörter-Wochen)
+  badgeLook:'gem',                 // optional: Abzeichen auf der Paketseite und bei „Neue Abzeichen!“ als Edelsteine (Lernwörter: look:'gem' in der Woche)
   // PFLICHT: eigene Abzeichen (zusätzlich zu den allgemeinen). id nie ändern, gespeichert als "<paket-id oder badgeGroup>:<id>".
   badges:[{id:'meister', icon:'⛏️', name:'Einmaleins-Meister', desc:'3 Sterne in …', test:c=>c.starsIn('reihe6')>=3}]
 });

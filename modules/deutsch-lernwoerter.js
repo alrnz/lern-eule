@@ -17,7 +17,7 @@
 const {shuffle,pick3,uniq,esc}=LernApp.util;
 
 const WOCHEN=[
- {from:'2026-11-23',
+ {from:'2026-11-23', look:'gem', // look: Aussehen der Abzeichen auf der Wochenseite (gem = Edelsteine)
   words:[
    {w:'Brief',accept:['der Brief'],tip:'Langes i schreibt man <b>ie</b>. Nomen schreibt man groß.',wrong:['Brif','Briev']},
    {w:'danach',gap:['n','nn'],tip:'da-nach: nur ein <b>n</b>. Kein Nomen, darum klein.',wrong:['dannach','danah']},
@@ -132,7 +132,7 @@ function build(week){
     subtitle:ws.slice(0,4).join(', ')+(n>4?' …':''),
     date:week.test, testName:'Diktat',
     icon:'✏️', color:'#16a34a', daily:true, dailyName:'Lernwörter', questionsPerWorld:n, noExam:true,
-    closed:week.closed, unlock:week.unlock,
+    closed:week.closed, unlock:week.unlock, badgeLook:week.look,
     hello:(week.closed&&week.closed.length)||later(week)?`Deine ${n} Lernwörter! Weitere Spiele kommen bald. ✍️`:[
       `Achtung, das <b>Wörter-Monster</b> 👾 ist wach! Schaffst du alle ${n} Lernwörter?`,
       `Psst … in einem Wort hat sich ein Fehler versteckt! 🕵️ Findest du ihn?`,
