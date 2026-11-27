@@ -156,18 +156,18 @@ function build(week){
            explain:`Richtig ist:${explainOf(x)}`}})]}
     ],
     boss:{name:'Wörter-Monster',icon:'👾',count:12,lives:3},
-    // Abzeichen gelten für alle Lernwörter-Wochen gemeinsam
-    badgeGroup:'lernwoerter',badgeTitle:'Lernwörter-Abzeichen',
+    // badgeEach: jede Woche verdient ihre Abzeichen neu (Anzahl erscheint als Zahl am Abzeichen); once = nur einmal insgesamt
+    badgeGroup:'lernwoerter',badgeEach:true,badgeTitle:'Lernwörter-Abzeichen',
     badges:[
-      {id:'woche',icon:'✏️',name:'Wort-Starter',desc:'Ein Lernwörter-Spiel geschafft',test:c=>c.kind==='world'&&c.stars>0},
+      {id:'woche',icon:'✏️',name:'Wort-Starter',desc:'Ein Spiel dieser Woche geschafft',test:c=>c.kind==='world'&&c.stars>0},
       {id:'ohr',retired:true,icon:'🎧',name:'Spitzen-Ohr',desc:'3 Sterne im Hör-Diktat',test:c=>c.world==='hoeren'&&c.stars>=3},
       {id:'blick',retired:true,icon:'👀',name:'Adlerauge',desc:'3 Sterne im Blitzblick',test:c=>c.world==='blick'&&c.stars>=3},
       {id:'finder',icon:'🕵️',name:'Fehler-Finder',desc:'3 Sterne im Fehler-Finder',test:c=>c.world==='detektiv'&&c.stars>=3},
       {id:'diktat',retired:true,icon:'📝',name:'Diktat-Profi',desc:'Probetest mit 3 Sternen',test:c=>c.kind==='exam'&&c.stars>=3},
       {id:'monster',icon:'👾',name:'Monster-Bändiger',desc:'Das Wörter-Monster besiegt',test:c=>c.kind==='boss'&&c.won&&!c.gold},
-      {id:'woche3',icon:'🌟',name:'Wochen-Star',desc:'Alle Sterne einer Lernwörter-Woche',test:c=>c.allStars},
-      {id:'r50',icon:'🖍️',name:'Schreib-Fleißig',desc:'50 Lernwörter richtig',test:c=>c.correct>=50},
-      {id:'r300',icon:'🏅',name:'Wörter-Meister',desc:'300 Lernwörter richtig',test:c=>c.correct>=300}
+      {id:'woche3',icon:'🌟',name:'Wochen-Star',desc:'Alle Sterne in dieser Woche',test:c=>c.allStars},
+      {id:'r50',icon:'🖍️',name:'Schreib-Fleißig',desc:'50 Lernwörter richtig in dieser Woche',test:c=>c.correct>=50},
+      {id:'r300',icon:'🏅',name:'Wörter-Meister',once:true,desc:'300 Lernwörter richtig',test:c=>c.correct>=300}
     ]
   });
 }

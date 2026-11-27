@@ -78,6 +78,12 @@ function fixState(){
     if(old>0)S.pc[g]=(S.pc[g]||0)+old;
     S.pcFix=1;
   }
+  if(!S.bwFix){ // einmalig (27.11.): Lernwörter-Abzeichen gelten seit heute je Woche. Bisherige stammen alle aus der ersten Woche.
+    const w1='lernwoerter-2026-11-16';
+    S.badges=S.badges.map(id=>/^lernwoerter:(woche|finder|monster|woche3|r50)$/.test(id)?w1+id.slice(11):id);
+    if(S.pc.lernwoerter&&!S.pc[w1])S.pc[w1]=S.pc.lernwoerter;
+    S.bwFix=1;
+  }
   if(typeof S.name!=='string')S.name='';
   if(!S.sync||typeof S.sync!=='object'||Array.isArray(S.sync))S.sync={}; // Server-Sicherung: id = Code ohne Namen
   if(!CODE_RE.test(S.sync.id||''))S.sync={id:newCode(),dirty:1};
@@ -196,8 +202,12 @@ const BADGES=[
 /* Eigene Abzeichen eines Lernpakets (m.badges): gespeichert als "<paket-id>:<abzeichen-id>". */
 // Mehrere Lernpakete können sich Abzeichen teilen (m.badgeGroup, z. B. alle Lernwörter-Wochen).
 const bkey=m=>m.badgeGroup||m.id;
+// badgeEach: in einer badgeGroup verdient jedes Paket seine Abzeichen selbst (z. B. jede Lernwörter-Woche neu).
+// Ausnahmen: once:true und retired:true bleiben einmal für die ganze Gruppe. n = wie oft insgesamt verdient.
+const bown=(m,b)=>m.badgeEach&&!b.once&&!b.retired?m.id:bkey(m);
+const bcount=(m,b)=>bown(m,b)===m.id&&m.id!==bkey(m)?LernApp.modules.filter(x=>bkey(x)===bkey(m)&&S.badges.indexOf(x.id+':'+b.id)>=0).length:(S.badges.indexOf(bkey(m)+':'+b.id)>=0?1:0);
 // retired:true = Abzeichen gibt es nicht mehr; wer es schon hat, behält es (wird nur dann angezeigt, nie mehr vergeben).
-const packBadges=m=>(m.badges||[]).filter(b=>!b.retired||S.badges.indexOf(bkey(m)+':'+b.id)>=0).map(b=>Object.assign({},b,{id:bkey(m)+':'+b.id}));
+const packBadges=m=>(m.badges||[]).filter(b=>!b.retired||S.badges.indexOf(bkey(m)+':'+b.id)>=0).map(b=>Object.assign({},b,{id:bown(m,b)+':'+b.id,n:bcount(m,b)}));
 const findBadge=id=>BADGES.find(x=>x.id===id)||LernApp.modules.reduce((f,m)=>f||packBadges(m).find(x=>x.id===id),null);
 function grant(id){
   if(S.badges.indexOf(id)>=0)return;
@@ -217,7 +227,8 @@ function checkPackBadges(m,ev){
     allStars:packStars(m)>=maxStars(m),
     blitzRecord:S.blitz[m.id]||0
   });
-  packBadges(m).forEach(b=>{if(S.badges.indexOf(b.id)<0){let ok=false;try{ok=!!b.test(c)}catch(e){}if(ok)grant(b.id)}});
+  // correct: bei Abzeichen je Paket (badgeEach) nur die richtigen Antworten dieses Pakets
+  packBadges(m).forEach(b=>{if(S.badges.indexOf(b.id)<0){const k=b.id.slice(0,b.id.lastIndexOf(':'));let ok=false;try{ok=!!b.test(k===bkey(m)?c:Object.assign({},c,{correct:S.pc[k]||0}))}catch(e){}if(ok)grant(b.id)}});
 }
 
 /* ================= Spezial-Welten ================= */
@@ -397,8 +408,11 @@ function sortPacks(list){
   return list.slice().sort((a,b)=>{const da=daysUntil(a.date),db=daysUntil(b.date);
     if(da===null&&db===null)return 0;if(da===null)return 1;if(db===null)return -1;return da-db});
 }
-const gotN=list=>list.filter(b=>S.badges.indexOf(b.id)>=0).length;
-const bgrid=(list,look)=>`<div class="bgrid${look?' '+look:''}">${list.map(b=>`<div class="badge ${S.badges.indexOf(b.id)>=0?'got':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('')}</div>`;
+// any: Startseite – verdient, wenn irgendwo in der Gruppe verdient (b.n); sonst nur in diesem Paket.
+const isGot=(b,any)=>any&&b.n!==undefined?b.n>0:S.badges.indexOf(b.id)>=0;
+const gotN=(list,any)=>list.filter(b=>isGot(b,any)).length;
+const bnum=b=>b.n>1?`<span class="bcount" title="${b.n}× verdient">${b.n}</span>`:'';
+const bgrid=(list,look,any)=>`<div class="bgrid${look?' '+look:''}">${list.map(b=>{const g=isGot(b,any);return `<div class="badge ${g?'got':''}">${g?bnum(b):''}<div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`}).join('')}</div>`;
 const badgeTitle=m=>`${m.icon||'🏅'} ${esc(m.badgeTitle||'Abzeichen: '+m.title)}`;
 /** Lernpaket-Seite: nur die eigenen Abzeichen des Pakets */
 const packBadgesHTML=m=>m.badges&&m.badges.length?`<div class="section"><h3>${badgeTitle(m)} (${gotN(packBadges(m))}/${packBadges(m).length})</h3>${bgrid(packBadges(m),m.badgeLook)}</div>`:'';
@@ -407,7 +421,7 @@ function allBadgesHTML(){
   const groups=[{title:'🦉 Allgemein',list:BADGES}],seen={};
   LernApp.modules.forEach(m=>{if(!m.badges||!m.badges.length||seen[bkey(m)])return;seen[bkey(m)]=1;groups.push({title:badgeTitle(m),list:packBadges(m)})});
   const all=[].concat.apply([],groups.map(g=>g.list));
-  return `<div class="section"><h3>🏅 Alle Abzeichen (${gotN(all)}/${all.length})</h3>${groups.map(g=>`<h4 class="bsub">${g.title} <small>${gotN(g.list)}/${g.list.length}</small></h4>${bgrid(g.list)}`).join('')}</div>`;
+  return `<div class="section"><h3>🏅 Alle Abzeichen (${gotN(all,1)}/${all.length})</h3>${groups.map(g=>`<h4 class="bsub">${g.title} <small>${gotN(g.list,1)}/${g.list.length}</small></h4>${bgrid(g.list,'',1)}`).join('')}</div>`;
 }
 function renderHome(){
   const active=sortPacks(LernApp.modules.filter(m=>!isDone(m)&&!isDaily(m)));
@@ -1000,7 +1014,7 @@ function judge(ok,el,given){
   S.answered++;
   let gemMsg='';
   if(ok){
-    S.correct++;Q.ok++;S.pc[bkey(m)]=(S.pc[bkey(m)]||0)+1;
+    S.correct++;Q.ok++;S.pc[bkey(m)]=(S.pc[bkey(m)]||0)+1;if(bkey(m)!==m.id)S.pc[m.id]=(S.pc[m.id]||0)+1;
     Q.streak++;Q.maxStreak=Math.max(Q.maxStreak,Q.streak);
     const gain=Q.kind==='chest'?CHEST_XP:10+Math.min(Q.streak-1,5)*2;
     const before=level();S.xp+=gain;Q.xpGain+=gain;
@@ -1064,7 +1078,7 @@ function resultBtns(m,primaryId,primaryLabel){
   return `<div class="rbtns"><button class="btn" onclick="LernApp.go('${m.id}')">🗺️ Zur Karte</button><button class="btn primary" onclick="LernApp.start('${primaryId}')">${primaryLabel}</button></div>`;
 }
 function badgesNew(){
-  return Q.newBadges.length?`<p><b>Neue Abzeichen!</b></p><div class="newbadges${Q.m&&Q.m.badgeLook&&Q.newBadges.every(b=>b.id.indexOf(bkey(Q.m)+':')===0)?' '+Q.m.badgeLook:''}">${Q.newBadges.map(b=>`<div class="badge got"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div></div>`).join('')}</div>`:'';
+  return Q.newBadges.length?`<p><b>Neue Abzeichen!</b></p><div class="newbadges${Q.m&&Q.m.badgeLook&&Q.newBadges.every(b=>b.id.indexOf(bkey(Q.m)+':')===0||b.id.indexOf(Q.m.id+':')===0)?' '+Q.m.badgeLook:''}">${Q.newBadges.map(b=>`<div class="badge got">${bnum(Object.assign({},b,{n:b.n+1}))}<div class="bi">${b.icon}</div><div class="bn">${b.name}</div></div>`).join('')}</div>`:'';
 }
 function starsRow(stars){return `<div class="stars">${[1,2,3].map(n=>`<span class="star ${n<=stars?'on':''}" style="animation-delay:${.2+n*.3}s">★</span>`).join('')}</div>`}
 function finish(lost){

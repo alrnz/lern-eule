@@ -63,6 +63,8 @@ LernApp.register({
   mascot:'🦉',                     // optional: Maskottchen auf der Paketseite und in den Rückmeldungen (Emoji oder SVG-HTML)
   badgeTitle:'Maulwurf-Abzeichen', // optional: Überschrift der eigenen Abzeichen
   badgeGroup:'lernwoerter',        // optional: mehrere Pakete teilen sich Abzeichen und Zähler (z. B. alle Lernwörter-Wochen)
+  badgeEach:true,                 // optional mit badgeGroup: jedes Paket verdient die Abzeichen selbst (gespeichert als "<paket-id>:<id>");
+                                   // mehrfach verdient = rote Zahl am Abzeichen. once:true an einem Abzeichen = nur einmal für die ganze Gruppe
   badgeLook:'gem',                 // optional: Abzeichen auf der Paketseite und bei „Neue Abzeichen!“ als Edelsteine (Lernwörter: look:'gem' in der Woche)
   // PFLICHT: eigene Abzeichen (zusätzlich zu den allgemeinen). id nie ändern, gespeichert als "<paket-id oder badgeGroup>:<id>".
   badges:[{id:'meister', icon:'⛏️', name:'Einmaleins-Meister', desc:'3 Sterne in …', test:c=>c.starsIn('reihe6')>=3}]
@@ -138,6 +140,8 @@ optional `test` = Diktat-Datum). Daraus wird automatisch ein eigenes Lernpaket `
 Richtig geschrieben?, Lücken-Wörter, Fehler-Finder und Endgegner. Falsche Schreibweisen und Erklärungen erzeugen die `RULES` in der Datei;
 eigene Tipps per `{w:'Wort',tip:'…'}`. Startseite: im Bereich „🗓️ Jeden Tag üben“ aktuelle und
 letzte Woche, ältere eingeklappt. Wörter einer Woche nie umsortieren (Schatzkiste).
+Abzeichen gibt es seit 27.11. jede Woche neu (`badgeEach`, `c.correct` = richtige Antworten dieser Woche, `S.pc[<paket-id>]`);
+„Wörter-Meister“ (300 richtig) nur einmal (`once`). Alte Gruppen-Abzeichen hat `fixState()` einmalig der Woche 16.11. zugeordnet (`S.bwFix`).
 Spiele vorerst sperren: `closed:['blick',…]` in der Woche (ohne Datum, Karte „Geheime Welt – bald“). Später freischalten:
 aus `closed` nehmen und `unlock:{blick:'JJJJ-MM-TT'}` setzen, dann kommt die Ankündigung. `closed` geht in jedem Lernpaket.
 
