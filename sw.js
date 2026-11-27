@@ -3,7 +3,7 @@
  * Google Fonts "cache first".
  * Bei jedem Deploy VERSION erhöhen, dann laden offene Apps die neuen Inhalte von selbst (nicht mitten im Quiz).
  */
-const VERSION='2026-11-23-3';
+const VERSION='2026-11-27-1';
 const CACHE='lern-eule-'+VERSION;
 const SHELL=['./','index.html','css/app.css','js/app.js','modules/index.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 

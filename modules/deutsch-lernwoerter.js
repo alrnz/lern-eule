@@ -17,6 +17,19 @@
 const {shuffle,pick3,uniq,esc}=LernApp.util;
 
 const WOCHEN=[
+ {from:'2026-11-23',
+  words:[
+   {w:'Brief',accept:['der Brief'],tip:'Langes i schreibt man <b>ie</b>. Nomen schreibt man groß.',wrong:['Brif','Briev']},
+   {w:'danach',gap:['n','nn'],tip:'da-nach: nur ein <b>n</b>. Kein Nomen, darum klein.',wrong:['dannach','danah']},
+   {w:'Geschichte',gap:['sch','sh','ch'],accept:['die Geschichte'],tip:'Ge-schich-te: erst <b>sch</b>, dann <b>ch</b>.',wrong:['Geschicht','Geschiechte','Gechichte']},
+   {w:'Hand',accept:['die Hand'],wrong:['Handt'],tip:'Am Ende hört man t. Verlängern: die Hän-<b>d</b>e → Han<b>d</b>.'},
+   {w:'Adressat',accept:['der Adressat'],tip:'A-dres-sat: nur ein <b>d</b>, aber doppeltes <b>ss</b>.',wrong:['Addressat','Adresat']},
+   {w:'Empfänger',accept:['der Empfänger'],tip:'Kommt von emp<b>fa</b>ngen: darum <b>ä</b>. Und nicht das <b>p</b> in <b>mpf</b> vergessen!',wrong:['Empfenger','Emfänger']},
+   {w:'Empfängerin',accept:['die Empfängerin'],tip:'Empfänger + <b>in</b>. Kommt von empfangen: darum <b>ä</b>, und <b>mpf</b>.',wrong:['Empfengerin','Emfängerin']},
+   {w:'Anschrift',gap:['sch','sh','ch'],accept:['die Anschrift'],tip:'An-schrift: kommt von <b>schreiben</b>.',wrong:['Anshrift','Anschrieft']},
+   {w:'Briefumschlag',accept:['der Briefumschlag'],tip:'Brief + Umschlag. Am Ende hört man k. Verlängern: die Umschlä-<b>g</b>e → Umschla<b>g</b>.',wrong:['Brifumschlag','Briefumschlak']},
+   {w:'Papier',accept:['das Papier'],tip:'Pa-pier: langes i schreibt man <b>ie</b>.',wrong:['Papir','Papiehr']}
+  ]},
  {from:'2026-11-16', // optional: test:'2026-11-27' (Diktat-Datum, zeigt Countdown)
   unlock:{richtig:'2026-11-19',luecke:'2026-11-20',detektiv:'2026-11-20',chest:'2026-11-20',blitz:'2026-11-20',gold:'2026-11-20'},
   words:[
