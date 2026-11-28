@@ -48,9 +48,17 @@ ctx.LernApp.modules.forEach(m=>{
     const check=(f,write)=>{
       for(let r=0;r<5;r++){ // mehrfach, weil Fragen zufällige Teile haben können
         const q=f();
-        if(!q.prompt&&!q.say&&!q.spot)return err(m,w,'prompt fehlt',q);
+        if(!q.prompt&&!q.say&&!q.spot&&!q.order)return err(m,w,'prompt fehlt',q);
         if(q.say&&!q.input)return err(m,w,'say nur bei Schreib-Fragen (input:true)',q);
-        if(q.spot){
+        if(q.order){
+          const o=q.order;
+          if(!Array.isArray(o)||o.length<3)return err(m,w,'order braucht mindestens 3 Zeilen',q);
+          if(o.some(x=>typeof x!=='string'||!x.trim()))return err(m,w,'order: leere Zeile',q);
+          if(new Set(o).size!==o.length)return err(m,w,'order: doppelte Zeilen',q);
+          if(q.options||q.input||q.spot)return err(m,w,'order nicht zusammen mit options, input oder spot',q);
+          if(typeof q.answer!=='string')return err(m,w,'answer fehlt',q);
+          if(!w.noMix)return err(m,w,'Welten mit order-Fragen brauchen noMix:true (nicht in Blitz/Endgegner)',q);
+        }else if(q.spot){
           const t=q.spot.tokens,n=t.filter(x=>x.fix).length;
           if(!Array.isArray(t)||!t.length)return err(m,w,'spot.tokens fehlt',q);
           if(!n||n!==q.spot.n)return err(m,w,`spot.n (${q.spot.n}) passt nicht zu ${n} Fehlern`,q);

@@ -923,10 +923,14 @@ function renderQ(){
     else return finish(false);
   }
   const q=Q.qs[Q.i],w=Q.w;Q.locked=false;
-  Q.opts=q.input||q.spot?[]:q.fixed?q.options:shuffle(q.options);Q.marks=[];
+  Q.opts=q.input||q.spot||q.order?[]:q.fixed?q.options:shuffle(q.options);Q.marks=[];
+  if(q.order){const ix=q.order.map((x,i)=>i);let o=shuffle(ix);for(let t=0;t<9&&o.join()===ix.join();t++)o=shuffle(ix);Q.ord=o}
   const blitz=Q.kind==='blitz';
   const pct=Math.round(Q.i/Q.qs.length*100);
-  const body=q.spot
+  const body=q.order
+    ?`<div class="ordl" id="ordl"></div><div class="ordp" id="ordp"></div>
+      <div class="spotbar"><span id="ordn"></span><button class="btn primary" id="ordgo" disabled onclick="LernApp._ordCheck()">Prüfen</button></div>`
+    :q.spot
     ?`<div class="spot">${q.spot.tokens.map((k,i)=>`<button class="tok ${/^[.,!?:;]$/.test(k.t)?'pt':''}" onclick="LernApp._tap(${i})">${esc(k.t)}</button>`).join('')}</div>
       <div class="spotbar"><span id="spotn">0 von ${q.spot.n} gefunden</span><button class="btn primary" id="spotgo" disabled onclick="LernApp._spotCheck()">Prüfen</button></div>`
     :q.input
@@ -941,6 +945,7 @@ function renderQ(){
    <div id="fb"></div></div>`;
   if(!blitz)scrollTo({top:0,behavior:'smooth'});
   if(q.input){const inp=$('#win');if(inp)inp.focus()}
+  if(q.order)ordDraw();
   if(q.say)say(); // direkt im Tipp des Kindes, sonst spielt iOS nichts ab
 }
 /* ---- Hör-Diktat: Vorlesen mit der eingebauten Sprachausgabe ---- */
@@ -984,6 +989,30 @@ function spotCheck(){
     else if(marked){b.classList.add('wrong');ok=false}
   });
   const g=$('#spotgo');if(g)g.disabled=true;
+  judge(ok,g||$('#qcard'),Q.marks.join(','));
+}
+/* ---- Brief-Puzzle (order): Zeilen der Reihe nach antippen. Q.marks = gelegte Zeilen (Index in q.order) ---- */
+function ordDraw(){
+  const q=Q.qs[Q.i],n=q.order.length,l=$('#ordl'),p=$('#ordp');if(!l||!p)return;
+  l.innerHTML=Q.marks.length?Q.marks.map((k,j)=>`<button class="oline${j===Q.marks.length-1?' new':''}" data-k="${k}" onclick="LernApp._ordTap(${k})"><span class="onr">${j+1}</span>${esc(q.order[k])}</button>`).join('')
+    :'<div class="ohint">Tippe unten die Zeile an, die zuerst kommt ✉️</div>';
+  p.innerHTML=Q.ord.filter(k=>Q.marks.indexOf(k)<0).map(k=>`<button class="ochip" onclick="LernApp._ordTap(${k})">${esc(q.order[k])}</button>`).join('');
+  const t=$('#ordn');if(t)t.textContent=`${Q.marks.length} von ${n} gelegt`;
+  const g=$('#ordgo');if(g)g.disabled=Q.marks.length!==n;
+}
+function ordTap(k){
+  if(!Q||Q.locked)return;
+  const q=Q.qs[Q.i];if(!q.order)return;
+  const j=Q.marks.indexOf(k);
+  if(j>=0)Q.marks.splice(j,1);else Q.marks.push(k);
+  sfx('tick');ordDraw();
+}
+function ordCheck(){
+  if(!Q||Q.locked)return;
+  const q=Q.qs[Q.i];if(!q.order||Q.marks.length!==q.order.length)return;
+  let ok=true;
+  document.querySelectorAll('.oline').forEach((b,j)=>{b.disabled=true;const r=+b.dataset.k===j;b.classList.add(r?'right':'wrong');if(!r)ok=false});
+  const g=$('#ordgo');if(g)g.disabled=true;
   judge(ok,g||$('#qcard'),Q.marks.join(','));
 }
 function answer(i){
@@ -1053,7 +1082,8 @@ function judge(ok,el,given){
   const dead=Q.kind==='boss'&&Q.hearts<=0;
   let sub='';
   if(!ok){
-    sub=q.spot?'<span class="k right">grün</span> = gefunden · <span class="k missed">orange</span> = übersehen · <span class="k wrong">rot</span> = war gar kein Fehler.'
+    sub=q.order?'<span class="k right">grün</span> = richtiger Platz · <span class="k wrong">rot</span> = falscher Platz.'
+      :q.spot?'<span class="k right">grün</span> = gefunden · <span class="k missed">orange</span> = übersehen · <span class="k wrong">rot</span> = war gar kein Fehler.'
       :q.input?`Richtig ist: <b>${esc(q.answer)}</b>${Q.caseHint?'<br>👀 Fast! Achte auf <b>Groß- und Kleinschreibung</b>.':''}`:'Die richtige Antwort ist grün.';
     if(Q.kind==='world')sub+=' Die Frage kommt später nochmal!';
     if((Q.kind==='exam'||Q.kind==='boss')&&isOpen(m,'chest'))sub+=' Morgen wartet sie in deiner 💎 Schatzkiste.';
@@ -1182,7 +1212,7 @@ Object.assign(LernApp,{
   _syncForce(btn){btn.disabled=true;syncPush(true).then(syncBoxUpdate)},
   _copyCode(btn){const c=showCode(),ok=()=>{btn.textContent='✅'};
     try{navigator.clipboard.writeText(c).then(ok,()=>prompt('Code:',c))}catch(e){prompt('Code:',c)}},
-  _answer:answer,_submit:submit,_tap:tap,_spotCheck:spotCheck,_say:say,_next:next,_cheat:cheat,_resetAsk:resetAsk,
+  _answer:answer,_submit:submit,_tap:tap,_spotCheck:spotCheck,_ordTap:ordTap,_ordCheck:ordCheck,_say:say,_next:next,_cheat:cheat,_resetAsk:resetAsk,
   _quit(){stopTimer();Q=null;route()},
   _locked(msg){toast('🔒',msg||'Noch gesperrt!')},
   _setName(v){S.name=v.trim();save();route()},

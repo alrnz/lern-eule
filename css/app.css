@@ -413,3 +413,25 @@ details.donew .worlds{margin-top:8px}
   .daily h3{font-size:18px}
   .dstreak{font-size:13px;white-space:nowrap}
 }
+
+/* ---- Brief-Puzzle (order) und Briefe im Lernpaket „Briefe schreiben“ ---- */
+.ordl{background:#fffbeb;border:2px solid #fde68a;border-radius:16px;padding:10px;min-height:70px;margin-bottom:12px;display:flex;flex-direction:column;gap:6px;text-align:left}
+.ohint{color:var(--muted);font-size:16px;text-align:center;padding:14px 4px}
+.oline{font:inherit;font-size:18px;text-align:left;background:#fff;border-radius:12px;padding:8px 10px;box-shadow:0 3px 0 #fde68a;display:flex;gap:8px;align-items:baseline}
+.oline.new{animation:popin .3s}
+.oline .onr{flex:none;display:inline-block;min-width:24px;height:24px;line-height:24px;border-radius:12px;background:var(--wc);color:#fff;font-size:14px;font-weight:700;text-align:center}
+.oline:disabled{cursor:default}
+.oline.right{background:var(--good);color:#fff;box-shadow:0 3px 0 var(--good-d)}
+.oline.wrong{background:var(--bad);color:#fff;box-shadow:0 3px 0 var(--bad-d)}
+.oline.right .onr,.oline.wrong .onr{background:rgba(255,255,255,.3)}
+.ordp{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.ochip{font:inherit;font-size:18px;text-align:left;background:#f5f3ff;border-radius:14px;padding:10px 12px;box-shadow:0 4px 0 #ddd6fe;transition:transform .1s}
+.ochip:active{transform:translateY(3px);box-shadow:0 1px 0 #ddd6fe}
+.brief{background:#fffbeb;border:2px solid #fde68a;border-radius:14px;padding:10px 12px;font-size:16px;line-height:1.35;text-align:left;font-weight:500;margin:4px auto 0;max-width:460px}
+.brief .bz{padding:3px 6px;border-radius:8px;margin:2px 0}
+.brief .bz.r{text-align:right}
+.brief .bz.on{background:#fde047;outline:3px solid #f59e0b;font-weight:700}
+.brief .bz.on::before{content:'👉 '}
+.brief .bz .lb{display:inline-block;font-size:12px;font-weight:700;color:#fff;border-radius:6px;padding:0 5px;margin-right:6px;vertical-align:1px}
+.opts.n7 .opt,.opts.n8 .opt{font-size:18px;padding:12px 8px}
+.bsatz{display:inline-block;background:#f5f3ff;border-radius:14px;padding:8px 14px;font-size:22px}

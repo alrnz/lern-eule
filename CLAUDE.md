@@ -86,6 +86,7 @@ LernApp.register({
 | `input` | `true` = Schreib-Frage (Textfeld statt Knöpfe, nur in `write`) |
 | `accept` | bei Schreib-Fragen: alle akzeptierten Schreibweisen (muss `answer` enthalten). Groß/klein zählt! |
 | `spot` | Fehler-Detektiv: `{tokens:[{t:'Wort'},{t:'Hunt',fix:'Hund'}], n:1}`; Kind tippt die `n` falschen Wörter an. Kein `options`; `answer` = richtiger Satz |
+| `order` | Brief-Puzzle: Liste von Zeilen in richtiger Reihenfolge; Kind tippt sie der Reihe nach an. Kein `options`; `answer` = Zeilen verbunden. Welt braucht `noMix:true` (nicht in Blitz/Endgegner) |
 | `num` | bei Schreib-Fragen: Zahlentastatur statt Buchstaben, kein Hinweis auf Groß/klein |
 | `say` | Hör-Diktat (nur mit `input:true`): Text, den die Eule per Sprachausgabe vorliest; `prompt` darf leer sein |
 
@@ -144,6 +145,13 @@ Abzeichen gibt es seit 27.11. jede Woche neu (`badgeEach`, `c.correct` = richtig
 „Wörter-Meister“ (300 richtig) nur einmal (`once`). Alte Gruppen-Abzeichen hat `fixState()` einmalig der Woche 16.11. zugeordnet (`S.bwFix`).
 Spiele vorerst sperren: `closed:['blick',…]` in der Woche (ohne Datum, Karte „Geheime Welt – bald“). Später freischalten:
 aus `closed` nehmen und `unlock:{blick:'JJJJ-MM-TT'}` setzen, dann kommt die Ankündigung. `closed` geht in jedem Lernpaket.
+
+### Briefe schreiben (`modules/deutsch-brief.js`)
+Dauerhaftes Paket (ohne Testdatum, kommt vermutlich als Diktat/Aufsatz) nach den Arbeitsblättern „Der Aufbau eines Briefs“:
+8 Teile (Ort/Datum, Anrede, Einleitung, Inhalt, Schluss, Gruß, Unterschrift, PS) mit den Farben vom Blatt, Komma nach der Anrede,
+kein Komma nach dem Gruß. Nur Grüße vom Blatt, keine förmlichen Anreden, kein Briefumschlag. Maskottchen Leo der Löwe.
+Welten: Pfeil-Maler, Was ist was?, Satz-Sortierer, Komma-Post, Brief-Puzzle (`order`, ab 2 Sternen im Pfeil-Maler);
+Mission Brief-Detektiv; Endgegner Brief-Wirbelwind. `BRIEFE`, `SATZ`, `SPOT` usw. nie umsortieren (Schatzkiste).
 
 ### Keine Vorlese- und Wort-Tipp-Spiele (seit 23.11.2026)
 Hör-Diktat (`say`), Blitzblick und Probetests, bei denen ganze Wörter getippt werden, kamen beim Kind nicht gut an und sind entfernt.
